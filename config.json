@@ -2,7 +2,12 @@
     "length": 600,
     "width": 400,
 
-    "algorithm": "density-based",
+    "algorithm": "mini_kmeans",
+    "algorithm_samples": [
+        "kmeans",
+        "density_based",
+        "mini_kmeans"
+    ],
     
     "random_nodes": [
         {

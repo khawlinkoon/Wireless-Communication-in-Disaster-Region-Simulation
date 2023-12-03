@@ -2,3 +2,5 @@ pygame
 scikit-learn
 matplotlib
 numpy
+pyyaml
+hmmlearn
