@@ -1,0 +1,57 @@
+{
+    "length": 600,
+    "width": 400,
+
+    "algorithm": "density-based",
+    
+    "random_nodes": [
+        {
+            "distribution": "randint",
+            "param": [
+                [0,0,0],
+                [600,400,10],
+                [100,3]
+            ]
+        }
+    ],
+
+    "cluster_nodes":[
+        {
+            "distribution": "poisson",
+            "param": [
+                [400,100,5],
+                [100,3]
+            ]
+        },
+        {
+            "distribution": "poisson",
+            "param": [
+                [250,200,10],
+                [75,3]
+            ]
+        },
+        {
+            "distribution": "poisson",
+            "param": [
+                [100,400,5],
+                [20,3]
+            ]
+        }
+    ],
+
+    "energy":[
+        {
+            "distribution": "normal",
+            "param": [
+                100,
+                0.5,
+                1
+            ]
+        }
+    ],
+
+    "uav_speed": 10,
+    "uav_range": 200,
+    "uav_energy": 2000
+
+}

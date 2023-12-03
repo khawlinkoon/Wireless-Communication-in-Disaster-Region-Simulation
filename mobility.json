@@ -1,0 +1,31 @@
+{
+    "type":[
+        {
+            "name": "stationary",
+            "distribution": "normal",
+            "param": [
+                0,
+                0.1,
+                1
+            ]
+        },
+        {
+            "name": "walking",
+            "distribution": "randint",
+            "param": [
+                0,
+                1,
+                1
+            ]
+        },
+        {
+            "name": "car",
+            "distribution": "randint",
+            "param": [
+                0,
+                5,
+                1
+            ]
+        }
+    ]
+}
