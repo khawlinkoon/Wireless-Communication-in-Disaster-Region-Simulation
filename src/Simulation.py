@@ -2,6 +2,8 @@ import yaml
 import numpy as np
 import logging
 import time
+import psutil
+import os
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.animation import FuncAnimation
@@ -36,8 +38,10 @@ class Simulation:
         )
         self.cluster_head = []
         self.cluster_member_stats = ClusterMemberStats(self.cluster_member)
-        self.total_runtime = "0 ms"
         self.initial_runtime = ""
+        self.initial_memory = ""
+        self.total_runtime = "0 ms"
+        self.total_memory = "0"
     
     def getClusteringAlgo(self):
         def setClusterHeadWithCenters(cluster_center: list) -> None:
@@ -88,67 +92,80 @@ class Simulation:
 
         current_algorithm = self.config["algorithm"].lower()
         start_time = time.time()
+        start_mem = psutil.Process(os.getpid()).memory_info().rss
         if current_algorithm == "kmeans":
             algo = Kmeans()
             algo.setData(self.cluster_member_stats)
             self.clustering = algo.generateModel(n_clusters = 5)
             self.labels = algo.getLabels()
+            self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithCenters(cluster_center=self.clustering.cluster_centers_)
         elif current_algorithm == "mini_kmeans":
             algo = MiniKmeans()
             algo.setData(self.cluster_member_stats)
             self.clustering = algo.generateModel(n_clusters = 5)
             self.labels = algo.getLabels()
+            self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithCenters(cluster_center=self.clustering.cluster_centers_)
         elif current_algorithm == "density_based":
             algo = DensityBased()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(eps = 20)
+            self.clustering = algo.generateModel()
             self.labels = algo.getLabels()
+            self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithoutCenters()
         elif current_algorithm == "affinity_propagation":
             algo = AffinityProp()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(damping=0.9)
+            self.clustering = algo.generateModel()
             self.labels = algo.getLabels()
+            self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithoutCenters()
         elif current_algorithm == "birch":
             algo = Balanced()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(threshold=0.01, n_clusters=5)
+            self.clustering = algo.generateModel()
             self.labels = algo.getLabels()
+            self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithoutCenters()
         elif current_algorithm == "spectral":
             algo = Spectral()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(n_clusters=5)
+            self.clustering = algo.generateModel()
             self.labels = algo.getLabels()
+            self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithoutCenters()
         elif current_algorithm == "gaussian":
             algo = Gaussian()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(n_components=5)
+            self.clustering = algo.generateModel()
             self.labels = algo.getLabels()
+            self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithoutCenters()
         elif current_algorithm == "lda":
             return NotImplementedError
             algo = LDA()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(n_components=5, random_state=0)
+            self.clustering = algo.generateModel()
             self.labels = algo.getLabels()
+            self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithoutCenters()
         elif current_algorithm == "markov":
             algo = Markov()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(n_components=5)
+            self.clustering = algo.generateModel()
             self.labels = algo.getLabels()
+            self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithoutCenters()
         else:
             return NotImplementedError
         
+        self.total_memory = str(psutil.Process(os.getpid()).memory_info().rss - start_mem)
         self.total_runtime = f"{(time.time()-start_time)*1000:.2f} ms"
         if self.initial_runtime == "":
             self.initial_runtime = self.total_runtime
+        if self.initial_memory == "":
+            self.initial_memory = self.total_memory
     
     def run(self) -> None:
         self.setFigure()
@@ -182,9 +199,17 @@ class Simulation:
         if current_time == 0:
             self.getClusteringAlgo()
             self.drawMap(update=True)
-        self.drawGraph1()
-        self.drawGraph2()
-        self.drawGraph3()
+            self.drawGraph1()
+            self.drawGraph2()
+            self.drawGraph3()
+        elif current_time % 5 == 0:
+            self.drawGraph1()
+            self.drawGraph2()
+            self.drawGraph3()
+        else:
+            pass
+        self.cluster_member_stats.updatePosition(self.cluster_head)
+        self.drawMap(update=True)
 
     def draw(self) -> None:
         self.drawMap()
@@ -242,7 +267,7 @@ class Simulation:
         self.graph1_x = [ind for ind in range(len(self.graph1_y))]
 
         self.ax[1].plot(self.graph1_x,self.graph1_y)
-        self.ax[1].set_xlim([0,self.config["cycle_frames"]])
+        self.ax[1].set_xlim([0,self.config["cycle_frames"]/5])
         self.ax[1].set_ylim([0,100])
         self.ax[1].set_title("Connectivity Ratio")
         # self.ax[1].legend([f"UAV {i+1}" for i in range(len(self.cluster_head))], loc="lower right")
@@ -258,24 +283,35 @@ class Simulation:
         self.graph2_x = [ind for ind in range(len(self.graph2_y))]
         
         self.ax[2].plot(self.graph2_x,self.graph2_y)
-        self.ax[2].set_xlim([0,self.config["cycle_frames"]])
-        self.ax[2].set_ylim([80,100])
+        self.ax[2].set_xlim([0,self.config["cycle_frames"]/5])
+        self.ax[2].set_ylim([0,100])
         self.ax[2].set_title("Uplink Probability")
         # self.ax[2].legend([f"UAV {i+1}" for i in range(len(self.cluster_head))], loc="lower right")
     
     def drawGraph3(self) -> None:
         self.ax[3].cla()
 
+        connectivity_mean = f"{np.mean(self.graph1_y)/100:.5f}" if len(self.graph1_y)>0 else "0"
+        uplink_mean = f"{np.mean(self.graph2_y)/100:.5f}" if len(self.graph2_y)>0 else "0"
+
         read_input = [
             self.config["algorithm"].replace("_"," ").title(),
             self.initial_runtime.format(len(self.config["algorithm"])),
             self.total_runtime.format(len(self.config["algorithm"])),
+            self.initial_memory.format(len(self.config["algorithm"])),
+            self.total_memory.format(len(self.config["algorithm"])),
+            connectivity_mean.format(len(self.config["algorithm"])),
+            uplink_mean.format(len(self.config["algorithm"])),
         ]
 
         row_labels = [
             "Algorithm                ",
             "Algorithm initial runtime", 
             "Algorithm runtime        ", 
+            "Initial memory usage     ", 
+            "Algorithm memory usage   ", 
+            "Connectivity ratio       ", 
+            "Uplink probability       ", 
         ]
 
         cell_text = [[text] for text in read_input]
@@ -318,7 +354,7 @@ def initializeClusterMembers(
     for position in all_cluster_members_position:
         cluster_member = ClusterMember(
             position = position,
-            mobility = Mobility("stationary"),
+            mobility = Mobility("car"),
             energy = distribution.getDistribution(
                 energy[0]["distribution"],
                 energy[0]["param"]),

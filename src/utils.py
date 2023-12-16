@@ -10,12 +10,14 @@ class Mobility:
         self.name = name
 
         self.mobility = next(item for item in self.full_mobility if item["name"] == self.name)
-        dist = Distribution()
-        self.distribution = dist.getDistribution(
+    
+    def changePos(self) -> float:
+        output = Distribution().getDistribution(
             self.mobility['distribution'], 
             self.mobility['param'])
-    
-    def get(self) ->str:
+        return output
+
+    def get(self) -> str:
         return self.name
 
     def read(self):
@@ -29,7 +31,7 @@ class Distribution:
     ) -> None:
 
         self.distribution = {
-            "poisson": np.random.poisson,       # mean, total
+            "poisson": np.random.poisson,       # mean, total, ratio
             "uniform": np.random.uniform,       # min, max, total
             "choice": np.random.choice,         # choice, prob
             "normal": np.random.normal,         # mean, sd, total
@@ -43,7 +45,7 @@ class Distribution:
     ) -> list:
         match name:
             case "poisson":
-                return self.distribution[name](args[0], args[1])
+                return self.distribution[name](np.array(args[0])/args[2], args[1])*args[2]
             case "uniform":
                 return self.distribution[name](args[0], args[1], args[2])
             case "choice":

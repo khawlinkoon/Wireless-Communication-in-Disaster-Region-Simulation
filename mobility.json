@@ -5,26 +5,26 @@
             "distribution": "normal",
             "param": [
                 0,
-                0.1,
-                1
+                5,
+                2
             ]
         },
         {
             "name": "walking",
             "distribution": "randint",
             "param": [
-                0,
-                1,
-                1
+                -15,
+                15,
+                2
             ]
         },
         {
             "name": "car",
             "distribution": "randint",
             "param": [
-                0,
-                5,
-                1
+                -30,
+                30,
+                2
             ]
         }
     ]

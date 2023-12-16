@@ -55,7 +55,7 @@ class DensityBased:
     def generateModel(
         self,
         eps : float = 200,
-        min_samples: int = 15,
+        min_samples: int = 20,
     ) -> DBSCAN:
         self.model = DBSCAN(eps=eps, min_samples=min_samples)
         self.model.fit(self.data)

@@ -65,6 +65,7 @@ class ClusterMemberStats:
             output.append(connected[ind]/tot*100 if tot != 0 else 0)
         return output
     
+    # TODO change this to path loss
     def getProbability(self, cluster_heads:list) -> list:
         total = [[] for head in cluster_heads]
 
@@ -100,4 +101,25 @@ class ClusterMemberStats:
         
         return total
 
-
+    def updatePosition(self, cluster_heads:list) -> None:
+        for ind in range(len(self.cluster_member)):
+            delta = self.cluster_member[ind].mobility.changePos()
+            
+            current_cluster_head = cluster_heads[self.cluster_member[ind].base_station]
+            distance = np.linalg.norm(self.cluster_member[ind].position[0:2]-current_cluster_head.position[0:2])
+            if distance < current_cluster_head.current_range:
+                self.cluster_member[ind].position[0] += delta[0]
+                self.cluster_member[ind].position[1] += delta[1]
+            else:
+                x1, y1, z1 = self.cluster_member[ind].position
+                x2, y2, z2 = current_cluster_head.position
+                if x1 < x2:
+                    self.cluster_member[ind].position[0] = x1+abs(delta[0])
+                else:
+                    self.cluster_member[ind].position[0] = x1-abs(delta[0])
+                if y1 < y2:
+                    self.cluster_member[ind].position[1] = y1+abs(delta[1])
+                else:
+                    self.cluster_member[ind].position[1] = y1-abs(delta[1])
+                
+            

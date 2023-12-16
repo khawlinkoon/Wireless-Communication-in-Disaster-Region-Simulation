@@ -1,10 +1,10 @@
 # Map settings
-length: 600
-width: 400
-cycle_frames: 5
-time_per_frame: 500 # ms
+length: 6000
+width: 4000
+cycle_frames: 50
+time_per_frame: 200 # ms
 
-algorithm: "markov"
+algorithm: "kmeans"
 # Example algorithms:
   # kmeans
   # density_based (Not done)
@@ -22,8 +22,8 @@ random_nodes: [
     distribution: "randint",
     param: [
       [0,0,0],
-      [600,400,10],
-      [100,3]
+      [6000,4000,10],
+      [200,3]
     ]
   }
 ]
@@ -32,22 +32,25 @@ cluster_nodes: [
   {
     distribution: "poisson",
     param: [
-      [400,100,5],
-      [100,3]
+      [5000,1000,5],
+      [1000,3],
+      5
     ]
   },
   {
     distribution: "poisson",
     param: [
-        [250,200,10],
-        [75,3]
+      [2500,2000,10],
+      [750,3],
+      5
     ]
   },
   {
     distribution: "poisson",
     param: [
-        [100,400,5],
-        [20,3]
+      [1000,3000,5],
+      [200,3],
+      5
     ]
   },
 ]
@@ -65,5 +68,5 @@ energy: [
 
 # UAV settings
 uav_speed: 10
-uav_range: 200
+uav_range: 750
 uav_energy: 2000
