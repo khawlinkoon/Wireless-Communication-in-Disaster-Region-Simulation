@@ -42,6 +42,7 @@ class Simulation:
         self.initial_memory = ""
         self.total_runtime = "0 ms"
         self.total_memory = "0"
+        self.pathloss = []
     
     def getClusteringAlgo(self):
         def setClusterHeadWithCenters(cluster_center: list) -> None:
@@ -160,7 +161,7 @@ class Simulation:
         else:
             return NotImplementedError
         
-        self.total_memory = str(psutil.Process(os.getpid()).memory_info().rss - start_mem)
+        self.total_memory = str((psutil.Process(os.getpid()).memory_info().rss - start_mem)/1024) + " kB"
         self.total_runtime = f"{(time.time()-start_time)*1000:.2f} ms"
         if self.initial_runtime == "":
             self.initial_runtime = self.total_runtime
@@ -189,8 +190,8 @@ class Simulation:
         self.gs = gridspec.GridSpec(3, 2, width_ratios=[7,3])
         self.ax = [
             plt.subplot(self.gs[:,0]),
-            plt.subplot(self.gs[0,1]),
             plt.subplot(self.gs[1,1]),
+            plt.subplot(self.gs[0,1]),
             plt.subplot(self.gs[2,1]),
         ]
 
@@ -202,13 +203,18 @@ class Simulation:
             self.drawGraph1()
             self.drawGraph2()
             self.drawGraph3()
+            if self.config['save']:
+                self.fig.savefig("Results\\map.png",dpi=300)
+                # self.saveGraph()
+                print("Saved")
         elif current_time % 5 == 0:
             self.drawGraph1()
             self.drawGraph2()
             self.drawGraph3()
         else:
             pass
-        self.cluster_member_stats.updatePosition(self.cluster_head)
+        if self.config["dynamic"]:
+            self.cluster_member_stats.updatePosition(self.config['evacuate_points'],self.config['evacuating'])
         self.drawMap(update=True)
 
     def draw(self) -> None:
@@ -260,46 +266,53 @@ class Simulation:
         self.ax[1].cla()
 
         data = self.cluster_member_stats.getConnectivity(self.cluster_head)
-        if len(self.graph1_y) > 20:
-            self.graph1_y = self.graph1_y[1:]
         if data != []:
             self.graph1_y.append(data)
+        if len(self.graph1_y) > 12:
+            self.graph1_y = self.graph1_y[1:]
         self.graph1_x = [ind for ind in range(len(self.graph1_y))]
 
+        # TODO: If change number of cluster will crash
         self.ax[1].plot(self.graph1_x,self.graph1_y)
         self.ax[1].set_xlim([0,self.config["cycle_frames"]/5])
         self.ax[1].set_ylim([0,100])
-        self.ax[1].set_title("Connectivity Ratio")
+        self.ax[1].set_xlabel("Time (frame)")
+        self.ax[1].set_ylabel("Coverage (%)")
+        self.ax[1].set_title("Coverage probabilty")
+
         # self.ax[1].legend([f"UAV {i+1}" for i in range(len(self.cluster_head))], loc="lower right")
 
     def drawGraph2(self) -> None:
         self.ax[2].cla()
 
-        data = self.cluster_member_stats.getProbability(self.cluster_head)
-        if len(self.graph2_y) > 20:
+        # data = self.cluster_member_stats.getProbability(self.cluster_head)
+        self.pathloss = self.cluster_member_stats.getPathLoss(self.cluster_head, self.config['terrain'])
+        if self.pathloss != []:
+            self.graph2_y.append(self.pathloss)
+        if len(self.graph2_y) > 12:
             self.graph2_y = self.graph2_y[1:]
-        if data != []:
-            self.graph2_y.append(data)
         self.graph2_x = [ind for ind in range(len(self.graph2_y))]
         
         self.ax[2].plot(self.graph2_x,self.graph2_y)
         self.ax[2].set_xlim([0,self.config["cycle_frames"]/5])
-        self.ax[2].set_ylim([0,100])
-        self.ax[2].set_title("Uplink Probability")
+        self.ax[2].set_ylim([60,120])
+        self.ax[2].set_xlabel("Time (frame)")
+        self.ax[2].set_ylabel("Path Loss (dB)")
+        self.ax[2].set_title("Path Loss")
         # self.ax[2].legend([f"UAV {i+1}" for i in range(len(self.cluster_head))], loc="lower right")
     
     def drawGraph3(self) -> None:
         self.ax[3].cla()
 
         connectivity_mean = f"{np.mean(self.graph1_y)/100:.5f}" if len(self.graph1_y)>0 else "0"
-        uplink_mean = f"{np.mean(self.graph2_y)/100:.5f}" if len(self.graph2_y)>0 else "0"
+        uplink_mean = f"{np.mean(self.graph2_y):.2f} dB" if len(self.graph2_y)>0 else "0 dB"
 
         read_input = [
             self.config["algorithm"].replace("_"," ").title(),
             self.initial_runtime.format(len(self.config["algorithm"])),
-            self.total_runtime.format(len(self.config["algorithm"])),
+            # self.total_runtime.format(len(self.config["algorithm"])),
             self.initial_memory.format(len(self.config["algorithm"])),
-            self.total_memory.format(len(self.config["algorithm"])),
+            # self.total_memory.format(len(self.config["algorithm"])),
             connectivity_mean.format(len(self.config["algorithm"])),
             uplink_mean.format(len(self.config["algorithm"])),
         ]
@@ -307,11 +320,11 @@ class Simulation:
         row_labels = [
             "Algorithm                ",
             "Algorithm initial runtime", 
-            "Algorithm runtime        ", 
+            # "Algorithm runtime        ", 
             "Initial memory usage     ", 
-            "Algorithm memory usage   ", 
-            "Connectivity ratio       ", 
-            "Uplink probability       ", 
+            # "Algorithm memory usage   ", 
+            "Average Coverage         ", 
+            "Average Path Loss        ", 
         ]
 
         cell_text = [[text] for text in read_input]
@@ -327,6 +340,22 @@ class Simulation:
             loc = 'best')
         table.auto_set_font_size(False)
         table.set_fontsize(11)
+
+    def saveGraph(self) -> None:
+        fig, ax = plt.subplots(2, 1)
+        ax[0].plot(self.graph1_x,self.graph1_y)
+        ax[0].set_xlim([0,self.config["cycle_frames"]/5])
+        ax[0].set_ylim([0,100])
+        ax[0].set_title("Connectivity Ratio")
+        ax[0].legend([f"UAV {i+1}" for i in range(len(self.cluster_head))], loc="lower right")
+
+        ax[1].plot(self.graph2_x,self.graph2_y)
+        ax[1].set_xlim([0,self.config["cycle_frames"]/5])
+        ax[1].set_ylim([60,120])
+        ax[1].set_title("Path Loss")
+        ax[1].legend([f"UAV {i+1}" for i in range(len(self.cluster_head))], loc="lower right")
+        fig.savefig("Results\\results.png",dpi=300)
+        plt.close()
     
 def initializeClusterMembers(
     length: float,
@@ -341,6 +370,7 @@ def initializeClusterMembers(
     all_cluster_members_position = distribution.getDistribution(
         random_nodes[0]["distribution"],
         random_nodes[0]["param"])
+    # all_cluster_members_position = [[1000,3000,1]]
     
     for nodes in cluster_nodes:
         current_node = distribution.getDistribution(

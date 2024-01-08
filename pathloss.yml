@@ -1,0 +1,23 @@
+# Reference
+types: [
+  {
+    name: "free space",
+    distance: 20, # m
+    pathloss: 77.9, # dB
+    exponent: 2,
+    distribution: "normal",
+    param: [
+      0,
+      1,
+      1
+    ]
+  },
+  {
+    name: "los/nlos",
+    a: [9.61,4.88],
+    b: [0.16,0.43],
+    fc: 180000000,
+    eta_los: [1,1],
+    eta_nlos: [20,21]
+  }
+]

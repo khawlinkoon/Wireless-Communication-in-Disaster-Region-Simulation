@@ -1,5 +1,6 @@
 import numpy as np
-import json
+from scipy import special as sp
+import yaml
 
 class Mobility:
     def __init__(
@@ -21,9 +22,8 @@ class Mobility:
         return self.name
 
     def read(self):
-        with open("mobility.json") as f:
-            self.full_mobility = json.load(f)['type']
-
+        with open("mobility.yml") as f:
+            self.full_mobility = yaml.safe_load(f)['types']
 
 class Distribution:
     def __init__(
@@ -36,6 +36,7 @@ class Distribution:
             "choice": np.random.choice,         # choice, prob
             "normal": np.random.normal,         # mean, sd, total
             "randint": np.random.randint,       # min, max, total
+            "rayleigh": np.random.rayleigh      # scale, total
         }
 
     def getDistribution(
@@ -54,5 +55,7 @@ class Distribution:
                 return self.distribution[name](args[0], args[1], args[2])
             case "randint":
                 return self.distribution[name](low=args[0], high=args[1], size=args[2])
+            case "rayleigh":
+                return self.distribution[name](args[0], args[1])
             case _:
                 return NotImplementedError(f"{name} distribution not added")

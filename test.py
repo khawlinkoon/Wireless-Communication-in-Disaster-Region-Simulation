@@ -1,7 +1,11 @@
-from src.utils import Mobility
+from src.utils import Mobility, Distribution
+import yaml
 
-m = Mobility("car")
-print(m.get())
+# m = Mobility("car")
+# print(m.get())
+
+# for i in range(10):
+#     print(Distribution().getDistribution("normal",[0,1,1]))
 
 for i in range(10):
-    print(m.changePos())
+    print(Distribution().getDistribution("normal", [0,5,2]))

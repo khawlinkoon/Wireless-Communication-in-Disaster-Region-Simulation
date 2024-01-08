@@ -164,7 +164,7 @@ class Spectral:
         self,
         n_clusters : int = 5,
     ) -> SpectralClustering:
-        self.model = SpectralClustering(n_clusters=n_clusters)
+        self.model = SpectralClustering(n_clusters=n_clusters, affinity="nearest_neighbors")
         self.model.fit(self.data)
         self.stats.setBaseStation(self.model.labels_)
         return self.model

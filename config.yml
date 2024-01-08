@@ -4,17 +4,29 @@ width: 4000
 cycle_frames: 50
 time_per_frame: 200 # ms
 
-algorithm: "kmeans"
+terrain: 1    # 0 for urban, 1 for suburban
+
+algorithm: "gaussian"
 # Example algorithms:
   # kmeans
-  # density_based (Not done)
   # mini_kmeans
-  # affinity_propagation
   # birch
-  # spectral (Not done)
+  # spectral
   # gaussian
+
+  # density_based (Not done)
+  # affinity_propagation (Not good)
   # lda (Not done)
   # markov
+
+pathloss: "los/nlos"
+# Exampe path loss model
+  # free space
+  # los/nlos
+
+dynamic: True
+evacuating: False
+save: True
 
 # Data Generation
 random_nodes: [
@@ -23,7 +35,7 @@ random_nodes: [
     param: [
       [0,0,0],
       [6000,4000,10],
-      [200,3]
+      [150,3]
     ]
   }
 ]
@@ -33,16 +45,16 @@ cluster_nodes: [
     distribution: "poisson",
     param: [
       [5000,1000,5],
-      [1000,3],
-      5
+      [400,3],
+      15
     ]
   },
   {
     distribution: "poisson",
     param: [
       [2500,2000,10],
-      [750,3],
-      5
+      [250,3],
+      15
     ]
   },
   {
@@ -50,7 +62,7 @@ cluster_nodes: [
     param: [
       [1000,3000,5],
       [200,3],
-      5
+      15
     ]
   },
 ]
@@ -60,7 +72,7 @@ energy: [
     distribution: "normal",
     param: [
         100,
-        0.5,
+        5,
         1
     ]
   }
@@ -70,3 +82,8 @@ energy: [
 uav_speed: 10
 uav_range: 750
 uav_energy: 2000
+
+evacuate_points: [
+  [1000,500,0],
+  [4000,3000,0],
+]
