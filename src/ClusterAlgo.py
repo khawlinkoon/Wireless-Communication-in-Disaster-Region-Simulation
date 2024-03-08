@@ -28,13 +28,17 @@ class Kmeans:
         else:
             self.model = KMeans(n_clusters=n_clusters, n_init=n_init)
         self.model.fit(self.data)
-        self.stats.setBaseStation(self.model.labels_)
+        self.cluster_center = [list(x) for x in self.model.cluster_centers_]
+        self.label = self.model.labels_
+        # temp = sorted(zip(self.cluster_center,np.unique(self.label)))
+        # self.cluster_center = np.array([x for x,_ in temp])
+        # self.label = [temp[x][1] for x in self.model.labels_]
+        self.stats.setBaseStation(self.label)
+
         return self.model
     
-    def getLabels(
-        self,
-    ) -> list:
-        return self.model.labels_
+    def getLabels(self) -> list:
+        return self.label
     
     # TODO implement
     def getOptimalCluster(
@@ -244,4 +248,3 @@ class Markov:
         self,
     ) -> list:
         return self.model.predict(self.data)
-

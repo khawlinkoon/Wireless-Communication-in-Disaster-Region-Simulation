@@ -36,6 +36,7 @@ class Simulation:
             self.config["energy"],
             self.dist_obj
         )
+        self.disaster_zones = [] if "disaster_zones" not in self.config.keys() else self.config["disaster_zones"]
         self.cluster_head = []
         self.cluster_member_stats = ClusterMemberStats(self.cluster_member)
         self.initial_runtime = ""
@@ -45,21 +46,21 @@ class Simulation:
         self.pathloss = []
     
     def getClusteringAlgo(self):
-        def setClusterHeadWithCenters(cluster_center: list) -> None:
+        def setClusterHeadWithCenters(cluster_center: np.array) -> None:
             self.center_x, self.center_y, self.center_z = cluster_center.T
             max_distance = self.cluster_member_stats.maxDistance(cluster_center)
             self.cluster_head = []
             for ind in range(len(np.unique(self.labels))):
                 head = ClusterHead(
                     id = ind,
-                    position = [self.center_x[ind],self.center_y[ind],100],
+                    position = np.array([self.center_x[ind],self.center_y[ind],100]),
                     speed = self.config["uav_speed"],
                     max_range = self.config["uav_range"],
                     current_range = min(max_distance[ind],self.config["uav_range"]),
                     energy = self.config["uav_range"]
                 )
                 self.cluster_head.append(head)
-
+            
         def setClusterHeadWithoutCenters() -> None:
             temp_center_x = [[] for ind in range(len(np.unique(self.labels)))]
             temp_center_y = [[] for ind in range(len(np.unique(self.labels)))]
@@ -98,8 +99,9 @@ class Simulation:
             algo = Kmeans()
             algo.setData(self.cluster_member_stats)
             self.clustering = algo.generateModel(n_clusters = 5)
-            self.labels = algo.getLabels()
+            self.labels = algo.label
             self.cluster_member_stats.setBaseStation(self.labels)
+            # setClusterHeadWithCenters(cluster_center=algo.cluster_center)
             setClusterHeadWithCenters(cluster_center=self.clustering.cluster_centers_)
         elif current_algorithm == "mini_kmeans":
             algo = MiniKmeans()
@@ -255,6 +257,31 @@ class Simulation:
                     alpha=0.9)
                 # print(head.id)
                 self.ax[0].add_artist(circle)
+            
+            for zone in self.disaster_zones:
+                rect = plt.Rectangle(
+                    zone[0],
+                    zone[1],
+                    zone[2],
+                    color = "#d11111",
+                    fill = False,
+                    ls = "-",
+                    lw = 3,
+                    hatch = "x")
+                self.ax[0].add_artist(rect)
+            
+            if self.config["dynamic"]:
+                for zone in self.config["evacuate_points"]:
+                    circle = plt.Circle(
+                        zone[0:2], 
+                        750,
+                        fill = False, 
+                        lw = 3, 
+                        alpha = 0.5,
+                        ls = "--",
+                        color = "#000000")
+                    self.ax[0].add_artist(circle)
+
         else:
             self.ax[0].scatter(x,y)
 

@@ -7,5 +7,9 @@ import yaml
 # for i in range(10):
 #     print(Distribution().getDistribution("normal",[0,1,1]))
 
-for i in range(10):
-    print(Distribution().getDistribution("normal", [0,5,2]))
+# with open("config.yml") as f:
+#     config = yaml.safe_load(f)
+
+a = [1]
+
+print(bool(a))

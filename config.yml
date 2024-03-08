@@ -2,11 +2,11 @@
 length: 6000
 width: 4000
 cycle_frames: 50
-time_per_frame: 200 # ms
+time_per_frame: 30 # ms
 
-terrain: 1    # 0 for urban, 1 for suburban
+terrain: 0    # 0 for urban, 1 for suburban
 
-algorithm: "gaussian"
+algorithm: "mini_kmeans"
 # Example algorithms:
   # kmeans
   # mini_kmeans
@@ -25,7 +25,7 @@ pathloss: "los/nlos"
   # los/nlos
 
 dynamic: True
-evacuating: False
+evacuating: True
 save: True
 
 # Data Generation
@@ -87,3 +87,9 @@ evacuate_points: [
   [1000,500,0],
   [4000,3000,0],
 ]
+
+# x, y, wdith, height
+# disaster_zones: [
+#   [[2000,2000],500,1000],
+#   [[5000,3000],500,500]
+# ]

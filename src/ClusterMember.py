@@ -48,32 +48,37 @@ class ClusterMemberStats:
             output[current_group] = max(output[current_group],np.linalg.norm(centers[current_group] - cluster.position))
         return output
 
-    def updatePosition(self, cluster_heads:list, towards:bool = False) -> None:
+    def updatePosition(self, setpoint:list, towards:bool = False) -> None:
         for ind in range(len(self.cluster_member)):
             delta = self.cluster_member[ind].mobility.changePos()
             
             distance = 999999999999999999
-            current_cluster_head = cluster_heads[1]
+            current_cluster_head = setpoint[1]
 
-            for i,head in enumerate(cluster_heads):
+            for i,head in enumerate(setpoint):
                 temp  = np.linalg.norm(self.cluster_member[ind].position[0:2]-head[0:2])
                 if distance != min(distance,temp):
                     distance = temp
-                    current_cluster_head = cluster_heads[i]
+                    current_cluster_head = setpoint[i]
             
             # distance = np.linalg.norm(self.cluster_member[ind].position[0:2]-current_cluster_head[0:2])
+            fixed_distance = 250
             if distance >= 500 and towards:
                 x1, y1, z1 = self.cluster_member[ind].position
                 x2, y2, z2 = current_cluster_head
-                if x1 < x2:
+                if x1 < x2 - fixed_distance:
                     self.cluster_member[ind].position[0] = x1+abs(delta[0])*np.random.choice([-1,1],p=[0.3,0.7])*0.6
-                else:
+                elif x1 > x2 + fixed_distance:
                     self.cluster_member[ind].position[0] = x1-abs(delta[0])*np.random.choice([-1,1],p=[0.3,0.7])*0.6
-                if y1 < y2:
-                    self.cluster_member[ind].position[1] = y1+abs(delta[1])*np.random.choice([-1,1],p=[0.3,0.7])*0.4
                 else:
+                    self.cluster_member[ind].position[0] += delta[0]
+                if y1 < y2 - fixed_distance:
+                    self.cluster_member[ind].position[1] = y1+abs(delta[1])*np.random.choice([-1,1],p=[0.3,0.7])*0.4
+                elif y1 > y2 + fixed_distance:
                     self.cluster_member[ind].position[1] = y1-abs(delta[1])*np.random.choice([-1,1],p=[0.3,0.7])*0.4
                     # *np.random.choice([-1,1],p=[0.3,0.7])
+                else:
+                    self.cluster_member[ind].position[1] += delta[1]
             else:
                 self.cluster_member[ind].position[0] += delta[0]
                 self.cluster_member[ind].position[1] += delta[1]

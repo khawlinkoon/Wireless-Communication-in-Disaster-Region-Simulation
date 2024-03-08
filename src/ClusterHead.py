@@ -1,10 +1,10 @@
-
+import numpy as np
 
 class ClusterHead:
     def __init__(
         self,
         id: int,
-        position: list[float], #(x,y,z)
+        position: np.array, #(x,y,z)
         speed: float,
         max_range: float,
         current_range: float,
@@ -19,20 +19,17 @@ class ClusterHead:
     
     def updatePosition(
         self,
-        location: list[float]
+        location: np.array
     ) -> float:
-        if self.position == location:
-            return 0
+        distance = np.linalg.norm(location - self.position)
+        if distance < self.speed:
+            self.position = location
+            return distance
         else:
-            distance = np.linalg.norm(location - self.position)
-            if distance < self.speed:
-                self.position = location
-                return distance
-            else:
-                ratio = self.speed/distance
-                self.position = [
-                    (1-ratio)*self.position[0] + ratio*location[0],
-                    (1-ratio)*self.position[1] + ratio*location[1],
-                    (1-ratio)*self.position[2] + ratio*location[2]]
-                return self.speed
+            ratio = self.speed/distance
+            self.position = [
+                (1-ratio)*self.position[0] + ratio*location[0],
+                (1-ratio)*self.position[1] + ratio*location[1],
+                (1-ratio)*self.position[2] + ratio*location[2]]
+            return self.speed
 
