@@ -53,13 +53,14 @@ class ClusterMemberStats:
             delta = self.cluster_member[ind].mobility.changePos()
             
             distance = 999999999999999999
-            current_cluster_head = setpoint[1]
+            current_cluster_head = setpoint
 
-            for i,head in enumerate(setpoint):
-                temp  = np.linalg.norm(self.cluster_member[ind].position[0:2]-head[0:2])
-                if distance != min(distance,temp):
-                    distance = temp
-                    current_cluster_head = setpoint[i]
+            # for i,head in enumerate(setpoint):
+            #     temp  = np.linalg.norm(self.cluster_member[ind].position[0:2]-head[0:2])
+            #     if distance != min(distance,temp):
+            #         distance = temp
+            #         current_cluster_head = setpoint[i]
+            distance = np.linalg.norm(self.cluster_member[ind].position[0:2]-setpoint[0:2])
             
             # distance = np.linalg.norm(self.cluster_member[ind].position[0:2]-current_cluster_head[0:2])
             fixed_distance = 250
@@ -123,7 +124,7 @@ class ClusterMemberStats:
 
                 return prob*100
             
-            prob = uplinkProb(current_head.position, cluster.position)            
+            prob = uplinkProb(current_head.current_position, cluster.position)            
             total[cluster.base_station].append(prob)
         
         for ind, item in enumerate(total):
@@ -253,7 +254,7 @@ class ClusterMemberStats:
 
                 return loss, connectivity*100
             
-            loss, connectivity = los_nlosPathLoss(current_head.position, cluster.position, location)
+            loss, connectivity = los_nlosPathLoss(current_head.current_position, cluster.position, location)
             total1[cluster.base_station].append(loss)
             total2[cluster.base_station].append(connectivity)
         
@@ -283,7 +284,7 @@ class ClusterMemberStats:
                 continue
             current_head = cluster_heads[cluster.base_station]
             total[cluster.base_station] += 1
-            distance = np.linalg.norm(current_head.position-cluster.position)
+            distance = np.linalg.norm(current_head.current_position-cluster.position)
             if distance <= current_head.current_range:
                 connected[cluster.base_station] += 1
         output = []

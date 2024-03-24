@@ -6,7 +6,7 @@ time_per_frame: 30 # ms
 
 terrain: 0    # 0 for urban, 1 for suburban
 
-algorithm: "mini_kmeans"
+algorithm: "kmeans"
 # Example algorithms:
   # kmeans
   # mini_kmeans
@@ -26,7 +26,7 @@ pathloss: "los/nlos"
 
 dynamic: True
 evacuating: True
-save: True
+save: False
 
 # Data Generation
 random_nodes: [
@@ -78,15 +78,25 @@ energy: [
   }
 ]
 
-# UAV settings
-uav_speed: 10
-uav_range: 750
-uav_energy: 2000
+# Base station settings
+bs_total: 2
+bs_range: 1000
+bs_height: 100
 
-evacuate_points: [
-  [1000,500,0],
-  [4000,3000,0],
+bs_location: [
+  [1000,1000,0],
+  [3000,3000,0]
 ]
+
+# UAV settings
+uav_total: 3
+uav_speed: 100
+uav_range: 750
+uav_height: 100
+uav_idle_energy: 10
+uav_move_energy: 100
+
+evacuate_point: [4000,3000,0]
 
 # x, y, wdith, height
 # disaster_zones: [

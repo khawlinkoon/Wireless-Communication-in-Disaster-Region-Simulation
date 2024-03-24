@@ -12,7 +12,7 @@ import matplotlib.patches as mpatches
 from src.utils import Mobility, Distribution
 from src.ClusterAlgo import Kmeans, DensityBased, MiniKmeans, AffinityProp, Balanced, Spectral, Gaussian, LDA, Markov
 from src.ClusterMember import ClusterMember, ClusterMemberStats
-from src.ClusterHead import ClusterHead
+from src.ClusterHead import ClusterHead, ClusterHeadStats
 
 class Simulation:
     def __init__(
@@ -27,7 +27,13 @@ class Simulation:
 
     def initialize(self) -> None:
         self.getConfig()
+        center = [self.config['length']/2,self.config['width']/2,0]
+        self.uav_height = self.config['uav_height']
+        self.disaster_zones = [] if "disaster_zones" not in self.config.keys() else self.config["disaster_zones"]
+        self.evacuate_point = center if "evacuate_point" not in self.config.keys() else self.config["evacuate_point"]
+        self.evacuating = self.config['evacuating']
         self.dist_obj = Distribution()
+        self.uav_total = self.config['uav_total']
         self.cluster_member = initializeClusterMembers(
             self.config["length"],
             self.config["width"],
@@ -36,9 +42,25 @@ class Simulation:
             self.config["energy"],
             self.dist_obj
         )
-        self.disaster_zones = [] if "disaster_zones" not in self.config.keys() else self.config["disaster_zones"]
-        self.cluster_head = []
+        self.cluster_head = initializeClusterHeads(
+            self.config['uav_total'],
+            [self.evacuate_point for i in range(self.config['uav_total'])],
+            self.config['uav_speed'],
+            self.config['uav_range'],
+            self.config['uav_idle_energy'],
+            self.config['uav_move_energy'],
+        )
+        self.base_station = initializeClusterHeads(
+            self.config['bs_total'],
+            self.config['bs_location'],
+            0,
+            self.config['bs_range'],
+            0,
+            0,
+        )
+        self.cluster_head_stats = ClusterHeadStats(self.cluster_head)
         self.cluster_member_stats = ClusterMemberStats(self.cluster_member)
+        self.base_station_stats = ClusterHeadStats(self.base_station)
         self.initial_runtime = ""
         self.initial_memory = ""
         self.total_runtime = "0 ms"
@@ -47,19 +69,21 @@ class Simulation:
     
     def getClusteringAlgo(self):
         def setClusterHeadWithCenters(cluster_center: np.array) -> None:
+            # TODO: Check if cluster centers are sorted, if no need sort
             self.center_x, self.center_y, self.center_z = cluster_center.T
             max_distance = self.cluster_member_stats.maxDistance(cluster_center)
-            self.cluster_head = []
-            for ind in range(len(np.unique(self.labels))):
-                head = ClusterHead(
-                    id = ind,
-                    position = np.array([self.center_x[ind],self.center_y[ind],100]),
-                    speed = self.config["uav_speed"],
-                    max_range = self.config["uav_range"],
-                    current_range = min(max_distance[ind],self.config["uav_range"]),
-                    energy = self.config["uav_range"]
-                )
-                self.cluster_head.append(head)
+            self.cluster_head_stats.updateEndPosition(cluster_center, self.uav_height)
+            # self.cluster_head = []
+            # for ind in range(len(np.unique(self.labels))):
+            #     head = ClusterHead(
+            #         id = ind,
+            #         position = np.array([self.center_x[ind],self.center_y[ind],100]),
+            #         speed = self.config["uav_speed"],
+            #         max_range = self.config["uav_range"],
+            #         current_range = min(max_distance[ind],self.config["uav_range"]),
+            #         energy = self.config["uav_energy"]
+            #     )
+            #     self.cluster_head.append(head)
             
         def setClusterHeadWithoutCenters() -> None:
             temp_center_x = [[] for ind in range(len(np.unique(self.labels)))]
@@ -79,18 +103,20 @@ class Simulation:
                 self.center_y[ind] = sum(temp_center_y[ind])/len(temp_center_y[ind]) if len(temp_center_y[ind]) != 0 else 0
                 self.center_z[ind] = sum(temp_center_z[ind])/len(temp_center_z[ind]) if len(temp_center_z[ind]) != 0 else 0
             
-            max_distance = self.cluster_member_stats.maxDistance(np.array([self.center_x,self.center_y,self.center_z]).T)
-            self.cluster_head = []
-            for ind in range(len(np.unique(self.labels))):
-                head = ClusterHead(
-                    id = ind,
-                    position = [self.center_x[ind],self.center_y[ind],100],
-                    speed = self.config["uav_speed"],
-                    max_range = self.config["uav_range"],
-                    current_range = min(max_distance[ind],self.config["uav_range"]),
-                    energy = self.config["uav_range"]
-                )
-                self.cluster_head.append(head)
+            cluster_center = np.array([self.center_x,self.center_y,self.center_z]).T
+            max_distance = self.cluster_member_stats.maxDistance(cluster_center)
+            self.cluster_head_stats.updateEndPosition(cluster_center, self.uav_height)
+            # self.cluster_head = []
+            # for ind in range(len(np.unique(self.labels))):
+            #     head = ClusterHead(
+            #         id = ind,
+            #         position = [self.center_x[ind],self.center_y[ind],100],
+            #         speed = self.config["uav_speed"],
+            #         max_range = self.config["uav_range"],
+            #         current_range = min(max_distance[ind],self.config["uav_range"]),
+            #         energy = self.config["uav_energy"]
+            #     )
+            #     self.cluster_head.append(head)
 
         current_algorithm = self.config["algorithm"].lower()
         start_time = time.time()
@@ -98,7 +124,7 @@ class Simulation:
         if current_algorithm == "kmeans":
             algo = Kmeans()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(n_clusters = 5)
+            self.clustering = algo.generateModel(n_clusters = self.uav_total)
             self.labels = algo.label
             self.cluster_member_stats.setBaseStation(self.labels)
             # setClusterHeadWithCenters(cluster_center=algo.cluster_center)
@@ -106,7 +132,7 @@ class Simulation:
         elif current_algorithm == "mini_kmeans":
             algo = MiniKmeans()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(n_clusters = 5)
+            self.clustering = algo.generateModel(n_clusters = self.uav_total)
             self.labels = algo.getLabels()
             self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithCenters(cluster_center=self.clustering.cluster_centers_)
@@ -216,7 +242,8 @@ class Simulation:
         else:
             pass
         if self.config["dynamic"]:
-            self.cluster_member_stats.updatePosition(self.config['evacuate_points'],self.config['evacuating'])
+            self.cluster_member_stats.updatePosition(self.evacuate_point,self.evacuating)
+            self.cluster_head_stats.updatePosition()
         self.drawMap(update=True)
 
     def draw(self) -> None:
@@ -239,6 +266,10 @@ class Simulation:
                 patch.append(mpatches.Patch(color=colors[ind%10], label=group))
             self.ax[0].legend(handles=patch, loc="lower right")
 
+            current_position = self.cluster_head_stats.getCurrentPosition()
+            current_range = self.cluster_head_stats.getCurrentRange()
+
+            # Cluster Centers
             self.ax[0].scatter(
                 self.center_x, 
                 self.center_y, 
@@ -247,11 +278,37 @@ class Simulation:
                 marker = "X", 
                 linewidths = 2.5, 
                 edgecolors = "black")
+
+            uav_x, uav_y, uav_z = current_position.T
+            # print(uav_x, uav_y)
+
+            # UAV Locations
+            self.ax[0].scatter(
+                uav_x, 
+                uav_y, 
+                s = 150, 
+                c = "none", 
+                marker = "P", 
+                linewidths = 2.5, 
+                edgecolors = "black")
             
-            for head in self.cluster_head:
+            bs_x, bs_y, bs_z = self.base_station_stats.getCurrentPosition().T
+
+            # BS Location
+            self.ax[0].scatter(
+                bs_x,
+                bs_y,
+                s = 300,
+                c = "none",
+                marker = "^",
+                linewidths = 8,
+                edgecolors = "black"
+            )
+            
+            for ind,head in enumerate(current_position):
                 circle = plt.Circle(
-                    head.position[0:2], 
-                    head.current_range,
+                    head[0:2], 
+                    current_range[ind],
                     fill=False, 
                     linewidth=2, 
                     alpha=0.9)
@@ -271,16 +328,15 @@ class Simulation:
                 self.ax[0].add_artist(rect)
             
             if self.config["dynamic"]:
-                for zone in self.config["evacuate_points"]:
-                    circle = plt.Circle(
-                        zone[0:2], 
-                        750,
-                        fill = False, 
-                        lw = 3, 
-                        alpha = 0.5,
-                        ls = "--",
-                        color = "#000000")
-                    self.ax[0].add_artist(circle)
+                circle = plt.Circle(
+                    self.evacuate_point[0:2], 
+                    750,
+                    fill = False, 
+                    lw = 3, 
+                    alpha = 0.5,
+                    ls = "--",
+                    color = "#000000")
+                self.ax[0].add_artist(circle)
 
         else:
             self.ax[0].scatter(x,y)
@@ -291,8 +347,8 @@ class Simulation:
     
     def drawGraph1(self) -> None:
         self.ax[1].cla()
-
-        data = self.cluster_member_stats.getConnectivity(self.cluster_head)
+        
+        data = self.cluster_member_stats.getConnectivity(self.cluster_head_stats.cluster_head)
         if data != []:
             self.graph1_y.append(data)
         if len(self.graph1_y) > 12:
@@ -313,7 +369,7 @@ class Simulation:
         self.ax[2].cla()
 
         # data = self.cluster_member_stats.getProbability(self.cluster_head)
-        self.pathloss = self.cluster_member_stats.getPathLoss(self.cluster_head, self.config['terrain'])
+        self.pathloss = self.cluster_member_stats.getPathLoss(self.cluster_head_stats.cluster_head, self.config['terrain'])
         if self.pathloss != []:
             self.graph2_y.append(self.pathloss)
         if len(self.graph2_y) > 12:
@@ -420,3 +476,27 @@ def initializeClusterMembers(
 
     return all_cluster_members
 
+def initializeClusterHeads(
+    # typ: str, # U = UAV, B = Base station
+    total: int,
+    position: list,
+    speed: float,
+    rnge: float,
+    idle_energy: float,
+    move_energy: float,
+) -> list:
+    all_cluster_heads = []
+
+    for i in range(total):
+        cluster_head = ClusterHead(
+            current_position = position[i],
+            end_position = position[i],
+            speed = speed,
+            max_range = rnge,
+            current_range = rnge,
+            idle_energy = idle_energy,
+            move_energy = move_energy
+        )
+        all_cluster_heads.append(cluster_head)
+
+    return all_cluster_heads
