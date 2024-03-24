@@ -19,54 +19,57 @@ class ClusterHead:
         self.idle_energy = idle_energy
         self.move_energy = move_energy
         self.energy_usage = 0
+        self.operational = True
     
-
 
 class ClusterHeadStats:
-    def __init__(self, cluster_head: list,) -> None:
+    def __init__(self, cluster_head: dict,) -> None:
         self.cluster_head = cluster_head
+        self.id_num = list(cluster_head.keys())
+        print(self.id_num)
+        self.cluster_head_value = list(cluster_head.values())
     
     def getCurrentPosition(self) -> np.array:
-        return np.array([item.current_position for item in self.cluster_head])
+        return np.array([item.current_position for item in self.cluster_head_value])
     
     def getCurrentRange(self) -> list:
-        return [item.current_range for item in self.cluster_head]
+        return [item.current_range for item in self.cluster_head_value]
 
     def getCurrentEnergy(self) -> list:
-        return [item.energy_usage for item in self.clsuter_head]
+        return [item.energy_usage for item in self.cluster_head_value]
 
     def updatePosition(self) -> None:
-        for ind in range(len(self.cluster_head)):
-            distance = np.linalg.norm(self.cluster_head[ind].end_position - self.cluster_head[ind].current_position)
+        for ind in range(len(self.cluster_head_value)):
+            distance = np.linalg.norm(self.cluster_head_value[ind].end_position - self.cluster_head_value[ind].current_position)
             if distance < 1:
                 self.updateEnergyUsage(1)
             else:
                 self.updateEnergyUsage(2)
-                if distance < self.cluster_head[ind].speed:
-                    self.cluster_head[ind].current_position = self.cluster_head[ind].end_position
+                if distance < self.cluster_head_value[ind].speed:
+                    self.cluster_head_value[ind].current_position = self.cluster_head_value[ind].end_position
                 else:
-                    ratio = self.cluster_head[ind].speed/distance
-                    self.cluster_head[ind].current_position = [
-                        (1-ratio)*self.cluster_head[ind].current_position[0] + ratio*self.cluster_head[ind].end_position[0],
-                        (1-ratio)*self.cluster_head[ind].current_position[1] + ratio*self.cluster_head[ind].end_position[1],
-                        (1-ratio)*self.cluster_head[ind].current_position[2] + ratio*self.cluster_head[ind].end_position[2],
+                    ratio = self.cluster_head_value[ind].speed/distance
+                    self.cluster_head_value[ind].current_position = [
+                        (1-ratio)*self.cluster_head_value[ind].current_position[0] + ratio*self.cluster_head_value[ind].end_position[0],
+                        (1-ratio)*self.cluster_head_value[ind].current_position[1] + ratio*self.cluster_head_value[ind].end_position[1],
+                        (1-ratio)*self.cluster_head_value[ind].current_position[2] + ratio*self.cluster_head_value[ind].end_position[2],
                     ]
-                    # self.cluster_head[ind].current_position += (self.cluster_head[ind].end_position - self.cluster_head[ind].current_position)/self.cluster_head[ind].speed
+                    # self.cluster_head_value[ind].current_position += (self.cluster_head_value[ind].end_position - self.cluster_head_value[ind].current_position)/self.clustcluster_head_valueer_head[ind].speed
 
     def updateEndPosition(self, position: list, height: float) -> None:
-        # print(self.cluster_head)
-        for ind in range(len(self.cluster_head)):
-            self.cluster_head[ind].end_position = position[ind]
-            self.cluster_head[ind].end_position[2] = height
+        # print(self.cluster_head_value)
+        for ind in range(len(self.cluster_head_value)):
+            self.cluster_head_value[ind].end_position = position[ind]
+            self.cluster_head_value[ind].end_position[2] = height
     
     def updateCurrentRange(self, range: list) -> None:
-        for ind in range(len(self.cluster_head)):
-            self.cluster_head[ind].current_range = min(range[ind],self.cluster_head[ind].max_range)
+        for ind in range(len(self.cluster_head_value)):
+            self.cluster_head_value[ind].current_range = min(range[ind],self.cluster_head_value[ind].max_range)
 
     def updateEnergyUsage(self, typ: bool) -> None:
         # false = idle, true = move
-        for ind in range(len(self.cluster_head)):
+        for ind in range(len(self.cluster_head_value)):
             if typ:
-                self.cluster_head[ind].energy_usage += self.cluster_head[ind].move_energy
+                self.cluster_head_value[ind].energy_usage += self.cluster_head_value[ind].move_energy
             else:
-                self.cluster_head[ind].energy_usage += self.cluster_head[ind].idle_energy
+                self.cluster_head_value[ind].energy_usage += self.cluster_head_value[ind].idle_energy

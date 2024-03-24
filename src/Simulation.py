@@ -42,25 +42,31 @@ class Simulation:
             self.config["energy"],
             self.dist_obj
         )
-        self.cluster_head = initializeClusterHeads(
-            self.config['uav_total'],
-            [self.evacuate_point for i in range(self.config['uav_total'])],
-            self.config['uav_speed'],
-            self.config['uav_range'],
-            self.config['uav_idle_energy'],
-            self.config['uav_move_energy'],
+        self.uav = initializeClusterHeads(
+            typ = "U",
+            total = self.config['uav_total'],
+            position = [self.evacuate_point for i in range(self.config['uav_total'])],
+            speed = self.config['uav_speed'],
+            rnge = self.config['uav_range'],
+            idle_energy = self.config['uav_idle_energy'],
+            move_energy = self.config['uav_move_energy'],
         )
         self.base_station = initializeClusterHeads(
-            self.config['bs_total'],
-            self.config['bs_location'],
-            0,
-            self.config['bs_range'],
-            0,
-            0,
+            typ = "B",
+            total = self.config['bs_total'],
+            position = self.config['bs_location'],
+            speed = 0,
+            rnge = self.config['bs_range'],
+            idle_energy = 0,
+            move_energy = 0,
         )
-        self.cluster_head_stats = ClusterHeadStats(self.cluster_head)
-        self.cluster_member_stats = ClusterMemberStats(self.cluster_member)
+        # self.cluster_head = {}
+        # self.cluster_head.update(self.base_station)
+        # self.cluster_head.update(self.uav)
+        # self.cluster_head_stats = ClusterHeadStats(self.cluster_head)
+        self.cluster_head_stats = ClusterHeadStats(self.uav)
         self.base_station_stats = ClusterHeadStats(self.base_station)
+        self.cluster_member_stats = ClusterMemberStats(self.cluster_member)
         self.initial_runtime = ""
         self.initial_memory = ""
         self.total_runtime = "0 ms"
@@ -348,7 +354,7 @@ class Simulation:
     def drawGraph1(self) -> None:
         self.ax[1].cla()
         
-        data = self.cluster_member_stats.getConnectivity(self.cluster_head_stats.cluster_head)
+        data = self.cluster_member_stats.getConnectivity(self.cluster_head_stats.cluster_head_value)
         if data != []:
             self.graph1_y.append(data)
         if len(self.graph1_y) > 12:
@@ -369,7 +375,7 @@ class Simulation:
         self.ax[2].cla()
 
         # data = self.cluster_member_stats.getProbability(self.cluster_head)
-        self.pathloss = self.cluster_member_stats.getPathLoss(self.cluster_head_stats.cluster_head, self.config['terrain'])
+        self.pathloss = self.cluster_member_stats.getPathLoss(self.cluster_head_stats.cluster_head_value, self.config['terrain'])
         if self.pathloss != []:
             self.graph2_y.append(self.pathloss)
         if len(self.graph2_y) > 12:
@@ -477,7 +483,7 @@ def initializeClusterMembers(
     return all_cluster_members
 
 def initializeClusterHeads(
-    # typ: str, # U = UAV, B = Base station
+    typ: str, # U = UAV, B = Base station
     total: int,
     position: list,
     speed: float,
@@ -485,7 +491,7 @@ def initializeClusterHeads(
     idle_energy: float,
     move_energy: float,
 ) -> list:
-    all_cluster_heads = []
+    all_cluster_heads = {}
 
     for i in range(total):
         cluster_head = ClusterHead(
@@ -495,8 +501,8 @@ def initializeClusterHeads(
             max_range = rnge,
             current_range = rnge,
             idle_energy = idle_energy,
-            move_energy = move_energy
+            move_energy = move_energy,
         )
-        all_cluster_heads.append(cluster_head)
+        all_cluster_heads[typ+str(i+1)] = (cluster_head)
 
     return all_cluster_heads
