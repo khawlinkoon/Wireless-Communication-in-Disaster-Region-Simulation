@@ -45,7 +45,7 @@ class Simulation:
         self.uav = initializeClusterHeads(
             typ = "U",
             total = self.config['uav_total'],
-            position = [self.evacuate_point for i in range(self.config['uav_total'])],
+            position = [np.array(self.evacuate_point) for i in range(self.config['uav_total'])],
             speed = self.config['uav_speed'],
             rnge = self.config['uav_range'],
             idle_energy = self.config['uav_idle_energy'],
@@ -76,9 +76,10 @@ class Simulation:
     def getClusteringAlgo(self):
         def setClusterHeadWithCenters(cluster_center: np.array) -> None:
             # TODO: Check if cluster centers are sorted, if no need sort
-            self.center_x, self.center_y, self.center_z = cluster_center.T
+            cluster_center = sorted(cluster_center,key=lambda x: [x[0],x[1],x[2]])
+            self.center_x, self.center_y, self.center_z = np.array(cluster_center).T
             max_distance = self.cluster_member_stats.maxDistance(cluster_center)
-            self.cluster_head_stats.updateEndPosition(cluster_center, self.uav_height)
+            self.cluster_head_stats.updateEndPosition(len(cluster_center), cluster_center, self.uav_height)
             # self.cluster_head = []
             # for ind in range(len(np.unique(self.labels))):
             #     head = ClusterHead(
@@ -110,8 +111,9 @@ class Simulation:
                 self.center_z[ind] = sum(temp_center_z[ind])/len(temp_center_z[ind]) if len(temp_center_z[ind]) != 0 else 0
             
             cluster_center = np.array([self.center_x,self.center_y,self.center_z]).T
+            cluster_center = sorted(cluster_center,key=lambda x: [x[0],x[1],x[2]])
             max_distance = self.cluster_member_stats.maxDistance(cluster_center)
-            self.cluster_head_stats.updateEndPosition(cluster_center, self.uav_height)
+            self.cluster_head_stats.updateEndPosition(len(cluster_center), cluster_center, self.uav_height)
             # self.cluster_head = []
             # for ind in range(len(np.unique(self.labels))):
             #     head = ClusterHead(

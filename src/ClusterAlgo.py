@@ -21,12 +21,7 @@ class Kmeans:
         n_clusters : int = 5,
         n_init : int = 10,
     ) -> KMeans:
-        if n_clusters != 5:
-            self.model = KMeans(n_clusters=n_clusters, n_init=n_init)
-        elif optimal:
-            self.model = KMeans(n_clusters=self.getOptimalCluster(), n_init=n_init)
-        else:
-            self.model = KMeans(n_clusters=n_clusters, n_init=n_init)
+        self.model = KMeans(n_clusters=n_clusters, n_init=n_init)
         self.model.fit(self.data)
         self.cluster_center = [list(x) for x in self.model.cluster_centers_]
         self.label = self.model.labels_
@@ -40,11 +35,6 @@ class Kmeans:
     def getLabels(self) -> list:
         return self.label
     
-    # TODO implement
-    def getOptimalCluster(
-        self,
-    ) -> int:
-        return 5
 
 # TODO: Test different parameters
 class DensityBased:
@@ -95,12 +85,6 @@ class MiniKmeans:
         self.model.fit(self.data)
         self.stats.setBaseStation(self.model.labels_)
         return self.model
-    
-    # TODO implement
-    def getOptimalCluster(
-        self,
-    ) -> int:
-        return 5
     
     def getLabels(
         self,

@@ -6,7 +6,7 @@ time_per_frame: 30 # ms
 
 terrain: 0    # 0 for urban, 1 for suburban
 
-algorithm: "kmeans"
+algorithm: "mini_kmeans"
 # Example algorithms:
   # kmeans
   # mini_kmeans
@@ -89,7 +89,7 @@ bs_location: [
 ]
 
 # UAV settings
-uav_total: 3
+uav_total: 10
 uav_speed: 100
 uav_range: 750
 uav_height: 100

@@ -46,25 +46,25 @@ class ClusterHeadStats:
             else:
                 self.updateEnergyUsage(2)
                 if distance < self.cluster_head_value[ind].speed:
-                    self.cluster_head_value[ind].current_position = self.cluster_head_value[ind].end_position
+                    self.cluster_head_value[ind].current_position = np.array(self.cluster_head_value[ind].end_position)
                 else:
                     ratio = self.cluster_head_value[ind].speed/distance
-                    self.cluster_head_value[ind].current_position = [
+                    self.cluster_head_value[ind].current_position = np.array([
                         (1-ratio)*self.cluster_head_value[ind].current_position[0] + ratio*self.cluster_head_value[ind].end_position[0],
                         (1-ratio)*self.cluster_head_value[ind].current_position[1] + ratio*self.cluster_head_value[ind].end_position[1],
                         (1-ratio)*self.cluster_head_value[ind].current_position[2] + ratio*self.cluster_head_value[ind].end_position[2],
-                    ]
+                    ])
                     # self.cluster_head_value[ind].current_position += (self.cluster_head_value[ind].end_position - self.cluster_head_value[ind].current_position)/self.clustcluster_head_valueer_head[ind].speed
 
-    def updateEndPosition(self, position: list, height: float) -> None:
+    def updateEndPosition(self, total: int, position: list, height: float) -> None:
         # print(self.cluster_head_value)
-        for ind in range(len(self.cluster_head_value)):
-            self.cluster_head_value[ind].end_position = position[ind]
+        for ind in range(min(total, len(self.cluster_head_value))):
+            self.cluster_head_value[ind].end_position = np.array(position[ind])
             self.cluster_head_value[ind].end_position[2] = height
     
-    def updateCurrentRange(self, range: list) -> None:
+    def updateCurrentRange(self, rnge: list) -> None:
         for ind in range(len(self.cluster_head_value)):
-            self.cluster_head_value[ind].current_range = min(range[ind],self.cluster_head_value[ind].max_range)
+            self.cluster_head_value[ind].current_range = min(rnge[ind],self.cluster_head_value[ind].max_range)
 
     def updateEnergyUsage(self, typ: bool) -> None:
         # false = idle, true = move
