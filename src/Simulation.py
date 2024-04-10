@@ -24,10 +24,16 @@ class Simulation:
     def getConfig(self) -> None:
         with open("config.yml") as f:
             self.config = yaml.safe_load(f)
+    
+    def getMapHeight(self) -> None:
+        if not os.path.exists("map.csv"):
+            os.system("python ./src/GenerateMapHeight.py")
+        self.map_height = np.loadtxt("map.csv", delimiter=",", dtype=int)
 
     def initialize(self) -> None:
+        self.getMapHeight()
         self.getConfig()
-        center = [self.config['length']/2,self.config['width']/2,0]
+        center = [self.config['length']/2, self.config['width']/2, 0]
         self.uav_height = self.config['uav_height']
         self.disaster_zones = [] if "disaster_zones" not in self.config.keys() else self.config["disaster_zones"]
         self.evacuate_point = center if "evacuate_point" not in self.config.keys() else self.config["evacuate_point"]
@@ -37,6 +43,7 @@ class Simulation:
         self.cluster_member = initializeClusterMembers(
             self.config["length"],
             self.config["width"],
+            self.map_height,
             self.config["random_nodes"],
             self.config["cluster_nodes"],
             self.config["energy"],
@@ -451,6 +458,7 @@ class Simulation:
 def initializeClusterMembers(
     length: float,
     width: float,
+    height: list,
     random_nodes: list,
     cluster_nodes: list,
     energy: list,
@@ -473,6 +481,7 @@ def initializeClusterMembers(
             axis=0)
     
     for position in all_cluster_members_position:
+        position[2] = height[position[0],position[1]]
         cluster_member = ClusterMember(
             position = position,
             mobility = Mobility("car"),

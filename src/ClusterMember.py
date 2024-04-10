@@ -211,6 +211,7 @@ class ClusterMemberStats:
         for cluster in self.cluster_member:
             if cluster.base_station == -1:
                 continue
+            
             current_head = cluster_heads[cluster.base_station]
 
             def los_nlosPathLoss(current_head_position, cluster_member_position, location):

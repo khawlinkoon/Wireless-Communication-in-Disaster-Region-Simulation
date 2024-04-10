@@ -10,6 +10,8 @@ import yaml
 # with open("config.yml") as f:
 #     config = yaml.safe_load(f)
 
-a = [1]
+import os
 
-print(bool(a))
+print(os.path.exists("map.csv"))
+
+os.system("python ./src/GenerateMapHeight.py")

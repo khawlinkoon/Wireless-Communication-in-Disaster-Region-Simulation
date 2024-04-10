@@ -1,12 +1,12 @@
 # Map settings
-length: 6000
-width: 4000
+length: &length 10000
+width: &width 10000
 cycle_frames: 50
 time_per_frame: 30 # ms
 
 terrain: 0    # 0 for urban, 1 for suburban
 
-algorithm: "mini_kmeans"
+algorithm: "birch"
 # Example algorithms:
   # kmeans
   # mini_kmeans
@@ -34,7 +34,7 @@ random_nodes: [
     distribution: "randint",
     param: [
       [0,0,0],
-      [6000,4000,10],
+      [*length,*width,10],
       [150,3]
     ]
   }
