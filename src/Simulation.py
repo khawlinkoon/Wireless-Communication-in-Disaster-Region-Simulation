@@ -38,6 +38,8 @@ class Simulation:
         self.disaster_zones = [] if "disaster_zones" not in self.config.keys() else self.config["disaster_zones"]
         self.evacuate_point = center if "evacuate_point" not in self.config.keys() else self.config["evacuate_point"]
         self.evacuate_point = np.append(self.evacuate_point, self.map_height[self.evacuate_point[0]][self.evacuate_point[1]])
+        self.base_station_point = center if self.config["bs_total"] <=0 else self.config["bs_location"]
+        self.base_station_point = [np.append(self.base_station_point[i], self.map_height[self.base_station_point[i][0]][self.base_station_point[i][1]]) for i in range(len(self.base_station_point))]
         self.evacuating = self.config['evacuating']
         self.dist_obj = Distribution()
         self.uav_total = self.config['uav_total']
@@ -64,18 +66,22 @@ class Simulation:
             typ = "B",
             height = self.map_height,
             total = self.config['bs_total'],
-            position = self.config['bs_location'],
+            position = self.base_station_point,
             speed = 0,
             rnge = self.config['bs_range'],
             idle_energy = 0,
             move_energy = 0,
         )
+        self.current_cycle = -1
+        self.start_cycle = self.config['start_cycle']
+
         # self.cluster_head = {}
         # self.cluster_head.update(self.base_station)
         # self.cluster_head.update(self.uav)
         # self.cluster_head_stats = ClusterHeadStats(self.cluster_head)
-        self.cluster_head_stats = ClusterHeadStats(self.uav)
+        self.uav_stats = ClusterHeadStats(self.uav)
         self.base_station_stats = ClusterHeadStats(self.base_station)
+        self.cluster_head_stats = self.base_station_stats
         self.cluster_member_stats = ClusterMemberStats(self.cluster_member)
         self.initial_runtime = ""
         self.initial_memory = ""
@@ -142,7 +148,7 @@ class Simulation:
         if current_algorithm == "kmeans":
             algo = Kmeans()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(n_clusters = self.uav_total)
+            self.clustering = algo.generateModel(n_clusters = self.cluster_head_stats.cluster_head_total)
             self.labels = algo.label
             self.cluster_member_stats.setBaseStation(self.labels)
             # setClusterHeadWithCenters(cluster_center=algo.cluster_center)
@@ -150,7 +156,7 @@ class Simulation:
         elif current_algorithm == "mini_kmeans":
             algo = MiniKmeans()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(n_clusters = self.uav_total)
+            self.clustering = algo.generateModel(n_clusters = self.cluster_head_stats.cluster_head_total)
             self.labels = algo.getLabels()
             self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithCenters(cluster_center=self.clustering.cluster_centers_)
@@ -244,11 +250,15 @@ class Simulation:
     def updateGraph(self, current_time) -> None:
         # print(current_time)
         if current_time == 0:
+            self.current_cycle += 1
+            if self.current_cycle == self.start_cycle:
+                self.cluster_head_stats = self.uav_stats
             self.getClusteringAlgo()
-            self.drawMap(update=True)
             self.drawGraph1()
             self.drawGraph2()
             self.drawGraph3()
+            self.drawMap(update=True)
+            
             if self.config['save']:
                 self.fig.savefig("Results\\map.png",dpi=300)
                 # self.saveGraph()
@@ -282,7 +292,9 @@ class Simulation:
             patch = []
             for ind, group in enumerate(np.unique([f"Cluster {label+1}" for label in self.labels])):
                 patch.append(mpatches.Patch(color=colors[ind%10], label=group))
-            self.ax[0].legend(handles=patch, loc="lower right")
+            label = [p.get_label() for p in patch]
+            label = sorted(label, key=lambda x: int("".join([i for i in x if i.isdigit()])))
+            self.ax[0].legend(handles=patch, labels=label, loc="lower right")
 
             current_position = self.cluster_head_stats.getCurrentPosition()
             current_range = self.cluster_head_stats.getCurrentRange()
@@ -363,17 +375,21 @@ class Simulation:
         self.ax[0].set_ylim([0,self.config["width"]])
         self.ax[0].set_title("Map")
     
-    def drawGraph1(self) -> None:
-        self.ax[1].cla()
+    def drawGraph1(self, refresh = False) -> None:
+        if refresh:
+            self.ax[1].clear()
+        else:
+            self.ax[1].cla()
         
         data = self.cluster_member_stats.getConnectivity(self.cluster_head_stats.cluster_head_value)
+        if len(self.graph1_y) > 0 and len(data) != len(self.graph1_y[0]):
+            self.graph1_y = []
         if data != []:
             self.graph1_y.append(data)
         if len(self.graph1_y) > 12:
             self.graph1_y = self.graph1_y[1:]
         self.graph1_x = [ind for ind in range(len(self.graph1_y))]
 
-        # TODO: If change number of cluster will crash
         self.ax[1].plot(self.graph1_x,self.graph1_y)
         self.ax[1].set_xlim([0,self.config["cycle_frames"]/5])
         self.ax[1].set_ylim([0,100])
@@ -383,11 +399,16 @@ class Simulation:
 
         # self.ax[1].legend([f"UAV {i+1}" for i in range(len(self.cluster_head))], loc="lower right")
 
-    def drawGraph2(self) -> None:
-        self.ax[2].cla()
+    def drawGraph2(self, refresh = False) -> None:
+        if refresh:
+            self.ax[2].clear()
+        else:
+            self.ax[2].cla()
 
         # data = self.cluster_member_stats.getProbability(self.cluster_head)
         self.pathloss = self.cluster_member_stats.getPathLoss(self.cluster_head_stats.cluster_head_value, self.config['terrain'])
+        if len(self.graph2_y) > 0 and len(self.pathloss) != len(self.graph2_y[0]):
+            self.graph2_y = []
         if self.pathloss != []:
             self.graph2_y.append(self.pathloss)
         if len(self.graph2_y) > 12:
@@ -402,8 +423,11 @@ class Simulation:
         self.ax[2].set_title("Path Loss")
         # self.ax[2].legend([f"UAV {i+1}" for i in range(len(self.cluster_head))], loc="lower right")
     
-    def drawGraph3(self) -> None:
-        self.ax[3].cla()
+    def drawGraph3(self, refresh = False) -> None:
+        if refresh:
+            self.ax[3].clear()
+        else:
+            self.ax[3].cla()
 
         connectivity_mean = f"{np.mean(self.graph1_y)/100:.5f}" if len(self.graph1_y)>0 else "0"
         uplink_mean = f"{np.mean(self.graph2_y):.2f} dB" if len(self.graph2_y)>0 else "0 dB"
@@ -507,6 +531,11 @@ def initializeClusterHeads(
     move_energy: float,
 ) -> list:
     all_cluster_heads = {}
+
+    # print(position)
+    if typ == "B":
+        for i in range(len(position)):
+            position[i][2] += 50  # Typical Base Station Height
 
     for i in range(total):
         cluster_head = ClusterHead(

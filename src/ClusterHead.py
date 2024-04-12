@@ -25,6 +25,7 @@ class ClusterHead:
 class ClusterHeadStats:
     def __init__(self, cluster_head: dict,) -> None:
         self.cluster_head = cluster_head
+        self.cluster_head_total = len(cluster_head)
         self.id_num = list(cluster_head.keys())
         print(self.id_num)
         self.cluster_head_value = list(cluster_head.values())

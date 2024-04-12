@@ -5,8 +5,9 @@ cycle_frames: 50
 time_per_frame: 30 # ms
 
 terrain: 0    # 0 for urban, 1 for suburban
+start_cycle: 1
 
-algorithm: "birch"
+algorithm: "kmeans"
 # Example algorithms:
   # kmeans
   # mini_kmeans
@@ -84,8 +85,8 @@ bs_range: 1000
 bs_height: 100
 
 bs_location: [
-  [1000,1000,0],
-  [3000,3000,0]
+  [1000,1000],
+  [3000,3000]
 ]
 
 # UAV settings
