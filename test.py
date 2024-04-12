@@ -11,7 +11,11 @@ import yaml
 #     config = yaml.safe_load(f)
 
 import os
+import numpy as np
 
-print(os.path.exists("map.csv"))
+# print(os.path.exists("map.csv"))
 
-os.system("python ./src/GenerateMapHeight.py")
+# os.system("python ./src/GenerateMapHeight.py")
+
+t = np.loadtxt("map.csv", delimiter=",", dtype=int)
+print(t.max())

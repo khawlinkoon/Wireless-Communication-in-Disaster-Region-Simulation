@@ -96,7 +96,7 @@ uav_height: 100
 uav_idle_energy: 10
 uav_move_energy: 100
 
-evacuate_point: [4000,3000,0]
+evacuate_point: [4000,3000]
 
 # x, y, wdith, height
 # disaster_zones: [

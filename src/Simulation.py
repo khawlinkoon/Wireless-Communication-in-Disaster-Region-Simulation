@@ -37,20 +37,22 @@ class Simulation:
         self.uav_height = self.config['uav_height']
         self.disaster_zones = [] if "disaster_zones" not in self.config.keys() else self.config["disaster_zones"]
         self.evacuate_point = center if "evacuate_point" not in self.config.keys() else self.config["evacuate_point"]
+        self.evacuate_point = np.append(self.evacuate_point, self.map_height[self.evacuate_point[0]][self.evacuate_point[1]])
         self.evacuating = self.config['evacuating']
         self.dist_obj = Distribution()
         self.uav_total = self.config['uav_total']
         self.cluster_member = initializeClusterMembers(
-            self.config["length"],
-            self.config["width"],
-            self.map_height,
-            self.config["random_nodes"],
-            self.config["cluster_nodes"],
-            self.config["energy"],
-            self.dist_obj
+            length = self.config["length"],
+            width = self.config["width"],
+            height = self.map_height,
+            random_nodes = self.config["random_nodes"],
+            cluster_nodes = self.config["cluster_nodes"],
+            energy = self.config["energy"],
+            distribution = self.dist_obj
         )
         self.uav = initializeClusterHeads(
             typ = "U",
+            height = self.map_height,
             total = self.config['uav_total'],
             position = [np.array(self.evacuate_point) for i in range(self.config['uav_total'])],
             speed = self.config['uav_speed'],
@@ -60,6 +62,7 @@ class Simulation:
         )
         self.base_station = initializeClusterHeads(
             typ = "B",
+            height = self.map_height,
             total = self.config['bs_total'],
             position = self.config['bs_location'],
             speed = 0,
@@ -257,7 +260,7 @@ class Simulation:
         else:
             pass
         if self.config["dynamic"]:
-            self.cluster_member_stats.updatePosition(self.evacuate_point,self.evacuating)
+            self.cluster_member_stats.updatePosition(self.evacuate_point,self.evacuating)  
             self.cluster_head_stats.updatePosition()
         self.drawMap(update=True)
 
@@ -495,6 +498,7 @@ def initializeClusterMembers(
 
 def initializeClusterHeads(
     typ: str, # U = UAV, B = Base station
+    height: list,
     total: int,
     position: list,
     speed: float,
