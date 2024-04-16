@@ -36,6 +36,20 @@ class ClusterMemberStats:
         
     def getEnergy(self) -> list:
         return [item.energy[0] for item in self.cluster_member]
+
+    def setMobility(self, cycle: int) -> None:
+        if cycle < 2 and cycle != 0:
+            prob = 0.2
+        elif cycle < 4:
+            prob = 0.4
+        elif cycle < 6:
+            prob = 0.6
+        else:
+            prob = 0.3
+        for cluster in self.cluster_member:
+            choice = np.random.choice([True,False],p=[prob,1-prob])
+            cluster.mobility = Mobility("walking") if choice else Mobility("car")
+        
     
     def setBaseStation(self, labels: list) -> None:
         for ind,label in enumerate(labels):
@@ -63,8 +77,8 @@ class ClusterMemberStats:
             distance = np.linalg.norm(self.cluster_member[ind].position[0:2]-setpoint[0:2])
             
             # distance = np.linalg.norm(self.cluster_member[ind].position[0:2]-current_cluster_head[0:2])
-            fixed_distance = 250
-            if distance >= 500 and towards:
+            fixed_distance = 100
+            if distance >= 300 and towards:
                 x1, y1, z1 = self.cluster_member[ind].position
                 x2, y2, z2 = current_cluster_head
                 if x1 < x2 - fixed_distance:

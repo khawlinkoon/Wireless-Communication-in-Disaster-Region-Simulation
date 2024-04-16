@@ -1,10 +1,11 @@
 # Map settings
-length: &length 10000
-width: &width 10000
+length: &length 3000
+width: &width 3000
 cycle_frames: 50
 time_per_frame: 30 # ms
 
 terrain: 0    # 0 for urban, 1 for suburban
+reload_map_height: False
 start_cycle: 1
 
 algorithm: "kmeans"
@@ -45,7 +46,7 @@ cluster_nodes: [
   {
     distribution: "poisson",
     param: [
-      [5000,1000,5],
+      [1000,1000,5],
       [400,3],
       15
     ]
@@ -53,7 +54,7 @@ cluster_nodes: [
   {
     distribution: "poisson",
     param: [
-      [2500,2000,10],
+      [2200,2000,5],
       [250,3],
       15
     ]
@@ -61,7 +62,7 @@ cluster_nodes: [
   {
     distribution: "poisson",
     param: [
-      [1000,3000,5],
+      [1000,1700,5],
       [200,3],
       15
     ]
@@ -80,24 +81,26 @@ energy: [
 ]
 
 # Base station settings
-bs_total: 2
-bs_range: 1000
-bs_height: 100
+bs_total: 3
+bs_range: 400
+bs_height: 80
 
 bs_location: [
   [1000,1000],
-  [3000,3000]
+  [2200,2000],
+  [1000,1700]
 ]
 
 # UAV settings
-uav_total: 10
-uav_speed: 100
-uav_range: 750
-uav_height: 100
+uav_total: 3
+uav_speed: 10
+uav_range: 500
+uav_height: 150
 uav_idle_energy: 10
 uav_move_energy: 100
 
-evacuate_point: [4000,3000]
+evacuate_point: [1500,1500]
+evacuate_radius: 500
 
 # x, y, wdith, height
 # disaster_zones: [

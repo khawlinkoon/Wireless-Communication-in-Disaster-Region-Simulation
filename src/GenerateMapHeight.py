@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import yaml
 
 def interpolant(t):
     return t*t*t*(t*(t*6 - 15) + 10)
@@ -53,9 +55,15 @@ def generate_perlin_noise_2d(
     n1 = n01*(1-t[:,:,0]) + t[:,:,0]*n11
     return np.sqrt(2)*((1-t[:,:,1])*n0 + t[:,:,1]*n1)
 
-data = generate_perlin_noise_2d((10000,10000),(1,1),(True,False))
-data = data*100
-data = data.astype(int)
-data = np.array([[y+50 for y in x] for x in data])
-print(data)
-np.savetxt("../map.csv", data, fmt="%d", delimiter=",")
+if __name__ == "__main__":
+    with open(".\config.yml") as f:
+        config = yaml.safe_load(f)
+    data = generate_perlin_noise_2d((config["length"],config["width"]),(1,1),(True,False))
+    data = data*100
+    data = data.astype(int)
+    data = np.array([[y+50 for y in x] for x in data])
+    plt.imshow(data)
+    plt.title("Map Height Generation")
+    plt.savefig("./Results/map_height.png",dpi=300)
+    np.savetxt("./map.csv", data, fmt="%d", delimiter=",")
+
