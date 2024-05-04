@@ -221,6 +221,7 @@ class ClusterMemberStats:
     def getPathLoss(self, cluster_heads:list, location:int = 0) -> list:
         total1 = [[] for head in cluster_heads]
         total2 = [[] for head in cluster_heads]
+        ch_pos = [x.current_position for x in cluster_heads]
 
         for cluster in self.cluster_member:
             if cluster.base_station == -1:
@@ -243,10 +244,6 @@ class ClusterMemberStats:
 
                 distance = np.linalg.norm(current_head_position-cluster_member_position)
                 height = abs(current_head_position[2]-cluster_member_position[2])
-
-                # print(distance, height)
-                if distance == 0:
-                    return 1
                 
                 theta = np.arcsin(height/distance)*180/np.pi
                 
@@ -254,7 +251,8 @@ class ClusterMemberStats:
                 prob_nlos = 1 - prob_los
 
                 loss = 20*np.log10(4*np.pi*fc*distance/c) + eta_los*prob_los + eta_nlos*prob_nlos
-
+                # loss = 20*np.log10(4*np.pi*fc*distance/c) + eta_los   
+                
                 g_db = 3 #dB
                 p_min = dbmToDb(20)
                 p_transmit = dbmToDb(50)
@@ -269,10 +267,13 @@ class ClusterMemberStats:
 
                 return loss, connectivity*100
             
+            # print(ch_pos)
+            # print(cluster.base_station)
+            # print(cluster.position)
             loss, connectivity = los_nlosPathLoss(current_head.current_position, cluster.position, location)
             total1[cluster.base_station].append(loss)
             total2[cluster.base_station].append(connectivity)
-        
+
         for ind, item in enumerate(total1):
             if len(item) > 0:
                 total1[ind] = sum(item)/len(item)
@@ -292,17 +293,3 @@ class ClusterMemberStats:
     def getConnectivity(self, cluster_heads:list) -> list:
         self.getPathLoss(cluster_heads)
         return self.connected_total
-        total = [0 for head in cluster_heads]
-        connected = [0 for head in cluster_heads]
-        for cluster in self.cluster_member:
-            if cluster.base_station == -1:
-                continue
-            current_head = cluster_heads[cluster.base_station]
-            total[cluster.base_station] += 1
-            distance = np.linalg.norm(current_head.current_position-cluster.position)
-            if distance <= current_head.current_range:
-                connected[cluster.base_station] += 1
-        output = []
-        for ind, tot in enumerate(total):
-            output.append(connected[ind]/tot*100 if tot != 0 else 0)
-        return output

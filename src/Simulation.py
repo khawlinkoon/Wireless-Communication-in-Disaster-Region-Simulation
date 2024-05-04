@@ -99,6 +99,7 @@ class Simulation:
             cluster_center = [obj[0] for obj in cluster_center]
             self.center_x, self.center_y, self.center_z = np.array(cluster_center).T
             max_distance = self.cluster_member_stats.maxDistance(cluster_center)
+            # self.cluster_head_stats.updateOrder(new_order)
             self.cluster_head_stats.updateEndPosition(len(cluster_center), cluster_center, self.uav_height)
             return new_order
             
@@ -126,6 +127,7 @@ class Simulation:
             new_order = [obj[1] for obj in cluster_center]
             cluster_center = [obj[0] for obj in cluster_center]
             max_distance = self.cluster_member_stats.maxDistance(cluster_center)
+            # self.cluster_head_stats.updateOrder(new_order)
             self.cluster_head_stats.updateEndPosition(len(cluster_center), cluster_center, self.uav_height)
             return new_order
 
@@ -408,7 +410,7 @@ class Simulation:
         
         self.ax[2].plot(self.graph2_x,self.graph2_y)
         self.ax[2].set_xlim([0,self.config["cycle_frames"]/5])
-        self.ax[2].set_ylim([60,120])
+        self.ax[2].set_ylim([70,150])
         self.ax[2].set_xlabel("Time (frame)")
         self.ax[2].set_ylabel("Path Loss (dB)")
         self.ax[2].set_title("Path Loss")

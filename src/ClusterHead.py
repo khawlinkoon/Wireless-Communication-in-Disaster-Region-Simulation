@@ -38,6 +38,9 @@ class ClusterHeadStats:
 
     def getCurrentEnergy(self) -> list:
         return [item.energy_usage for item in self.cluster_head_value]
+    
+    def updateOrder(self, order: list) -> None:
+        self.cluster_head_value = [self.cluster_head_value[ind] for ind in order]
 
     def updatePosition(self) -> None:
         for ind in range(len(self.cluster_head_value)):
