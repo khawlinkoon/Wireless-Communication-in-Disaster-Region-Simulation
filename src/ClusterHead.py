@@ -40,18 +40,21 @@ class ClusterHeadStats:
         return [item.current_range for item in self.cluster_head_value]
 
     def getCurrentEnergy(self) -> list:
-        return [item.energy_usage for item in self.cluster_head_value]
+        return [item.energy_usage/1000 for item in self.cluster_head_value]
     
     def updateOrder(self, order: list) -> None:
         self.cluster_head_value = [self.cluster_head_value[ind] for ind in order]
 
     def updatePosition(self) -> None:
+        energy_check = []
         for ind in range(len(self.cluster_head_value)):
             distance = np.linalg.norm(self.cluster_head_value[ind].end_position - self.cluster_head_value[ind].current_position)
             if distance < 1:
-                self.updateEnergyUsage(1)
+                energy_check.append(False)
+                # self.updateEnergyUsage(False)
             else:
-                self.updateEnergyUsage(2)
+                energy_check.append(True)
+                # self.updateEnergyUsage(True)
                 if distance < self.cluster_head_value[ind].speed:
                     self.cluster_head_value[ind].current_position = np.array(self.cluster_head_value[ind].end_position)
                 else:
@@ -62,6 +65,7 @@ class ClusterHeadStats:
                         (1-ratio)*self.cluster_head_value[ind].current_position[2] + ratio*self.cluster_head_value[ind].end_position[2],
                     ])
                     # self.cluster_head_value[ind].current_position += (self.cluster_head_value[ind].end_position - self.cluster_head_value[ind].current_position)/self.clustcluster_head_valueer_head[ind].speed
+        self.updateEnergyUsage(energy_check)
 
     def updateEndPosition(self, total: int, position: list, height: float) -> None:
         # print(self.cluster_head_value)
@@ -73,10 +77,11 @@ class ClusterHeadStats:
         for ind in range(len(self.cluster_head_value)):
             self.cluster_head_value[ind].current_range = min(rnge[ind],self.cluster_head_value[ind].max_range)
 
-    def updateEnergyUsage(self, typ: bool) -> None:
+    def updateEnergyUsage(self, typ: list) -> None:
         # false = idle, true = move
         for ind in range(len(self.cluster_head_value)):
-            if typ:
+            if typ[ind]:
                 self.cluster_head_value[ind].energy_usage += self.cluster_head_value[ind].move_energy
             else:
-                self.cluster_head_value[ind].energy_usage += self.cluster_head_value[ind].idle_energy
+                self.cluster_head_value[ind].energy_usage += self.cluster_head_value[ind].move_energy/1.5
+            self.cluster_head_value[ind].energy_usage += self.cluster_head_value[ind].idle_energy

@@ -69,7 +69,7 @@ class Simulation:
             typ = "B",
             height = self.map_height,
             total = self.config["bs_total"]+1,
-            position = self.base_station_point,
+            position = self.base_station_point, 
             speed = 0,
             rnge = self.config["bs_range"],
             idle_energy = 0,
@@ -221,6 +221,7 @@ class Simulation:
         self.setFigure()
         self.graph1_y = []
         self.graph2_y = []
+        self.graph4_y = []
 
         self.ani = FuncAnimation(
             self.fig, 
@@ -236,11 +237,12 @@ class Simulation:
         self.fig.suptitle("Wireless Communication in Disaster Region Simulation", size=16)
         self.fig.set(tight_layout=True)
 
-        self.gs = gridspec.GridSpec(3, 2, width_ratios=[7,3])
+        self.gs = gridspec.GridSpec(4, 2, width_ratios=[7,3])
         self.ax = [
             plt.subplot(self.gs[:,0]),
             plt.subplot(self.gs[1,1]),
             plt.subplot(self.gs[0,1]),
+            plt.subplot(self.gs[3,1]),
             plt.subplot(self.gs[2,1]),
         ]
 
@@ -256,6 +258,7 @@ class Simulation:
             self.drawGraph1()
             self.drawGraph2()
             self.drawGraph3()
+            self.drawGraph4()
             self.drawMap(update=True)
             
             if self.config["save"]:
@@ -266,6 +269,7 @@ class Simulation:
             self.drawGraph1()
             self.drawGraph2()
             self.drawGraph3()
+            self.drawGraph4()
         else:
             pass
         if self.config["dynamic"]:
@@ -278,6 +282,7 @@ class Simulation:
         self.drawGraph1()
         self.drawGraph2()
         self.drawGraph3()
+        self.drawGraph4()
 
     def drawMap(self, update: bool = False) -> None:
         self.ax[0].cla()
@@ -477,6 +482,27 @@ class Simulation:
             loc = "best")
         table.auto_set_font_size(False)
         table.set_fontsize(11)
+
+    def drawGraph4(self) -> None:
+        self.ax[4].cla()
+        energy = self.cluster_head_stats.getCurrentEnergy()
+        
+        if len(self.graph4_y) > 0 and len(energy) != len(self.graph4_y[0]):
+            self.graph4_y = []
+        if energy != []:
+            self.graph4_y.append(energy)
+        if len(self.graph4_y) > 12:
+            self.graph4_y = self.graph4_y[1:]
+        self.graph4_x = [ind for ind in range(len(self.graph4_y))]
+
+        self.ax[4].plot(self.graph4_x,self.graph4_y)
+        # self.ax[4].plot([0,12], [3000]*2)
+        self.ax[4].set_xlim([0,self.config["cycle_frames"]/5])
+        # self.ax[4].set_ylim([0,5000])
+        self.ax[4].set_xlabel("Time (frame)")
+        self.ax[4].set_ylabel("Energy Used (W)")
+        self.ax[4].set_title("UAV energy content")
+
 
     def saveGraph(self) -> None:
         fig, ax = plt.subplots(2, 1)

@@ -96,8 +96,8 @@ uav_total: 3
 uav_speed: 10
 uav_range: 500
 uav_height: 150
-uav_idle_energy: 7870.788 # Citation
-uav_move_energy: 72.405
+uav_idle_energy: 72.405 # Communication
+uav_move_energy: 7870.788 
 
 evacuate_point: [1500,1500]
 evacuate_radius: 500
