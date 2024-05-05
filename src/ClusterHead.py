@@ -21,9 +21,12 @@ class ClusterHead:
         self.energy_usage = 0
         self.operational = True
     
+    def getDistance(self, main_base_station: np.array) -> np.array:
+        return np.linalg.norm(self.current_position - main_base_station)
+    
 
 class ClusterHeadStats:
-    def __init__(self, cluster_head: dict,) -> None:
+    def __init__(self, cluster_head: dict) -> None:
         self.cluster_head = cluster_head
         self.cluster_head_total = len(cluster_head)
         self.id_num = list(cluster_head.keys())

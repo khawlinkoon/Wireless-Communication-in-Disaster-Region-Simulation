@@ -2,25 +2,35 @@ from src.utils import Mobility, Distribution
 import yaml
 import numpy as np
 
-m = Mobility("car")
+# print(np.random.choice([-1,1],p=[0.3,0.7]))
 
-# for i in range(10):
-#     print(m.changePos())
-for i in range(10):
-    print(np.random.choice([-1,1],p=[0.3,0.7]))
+import matplotlib.pyplot as plt
 
-# for i in range(10):
-#     print(Distribution().getDistribution("normal",[0,1,1]))
 
-# with open("config.yml") as f:
-#     config = yaml.safe_load(f)
+total = 5
+points = np.random.randint(low = -20, high = 20, size = [total,2])
 
-# import os
+px, py = points.T
 
-# # print(os.path.exists("map.csv"))
+minx = min(px)
+miny = min(py)
 
-# # os.system("python ./src/GenerateMapHeight.py")
+maxx = max(px)
+maxy = max(py)
 
-# t = np.loadtxt("map.csv", delimiter=",", dtype=int)
-# print(t.max())
+avgx = sum(px)/total
+avgy = sum(py)/total
 
+x1 = (minx+avgx)/2
+y1 = (miny+avgy)/2
+
+x2 = (maxx+avgx)/2
+y2 = (maxy+avgy)/2
+
+plt.scatter(px,py)
+plt.plot(avgx,avgy,'ro')
+
+plt.plot(x1,y1,'gx')
+plt.plot(x2,y2,'gx')
+
+plt.show()

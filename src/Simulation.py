@@ -41,6 +41,8 @@ class Simulation:
         self.evacuate_radius = self.config["evacuate_radius"]
         self.base_station_point = center if self.config["bs_total"] <=0 else self.config["bs_location"]
         self.base_station_point = [np.append(self.base_station_point[i], self.map_height[self.base_station_point[i][0]][self.base_station_point[i][1]]) for i in range(len(self.base_station_point))]
+        self.base_station_point.append(self.evacuate_point)
+        self.main_base_station = self.base_station_point[-1]
         self.evacuating = self.config["evacuating"]
         self.dist_obj = Distribution()
         self.uav_total = self.config["uav_total"]
@@ -66,7 +68,7 @@ class Simulation:
         self.base_station = initializeClusterHeads(
             typ = "B",
             height = self.map_height,
-            total = self.config["bs_total"],
+            total = self.config["bs_total"]+1,
             position = self.base_station_point,
             speed = 0,
             rnge = self.config["bs_range"],
@@ -103,7 +105,7 @@ class Simulation:
             self.cluster_head_stats.updateEndPosition(len(cluster_center), cluster_center, self.uav_height)
             return new_order
             
-        def setClusterHeadWithoutCenters() -> list:
+        def setClusterHeadWithoutCenters(total_cluster: int) -> list:
             temp_center_x = [[] for ind in range(len(np.unique(self.labels)))]
             temp_center_y = [[] for ind in range(len(np.unique(self.labels)))]
             temp_center_z = [[] for ind in range(len(np.unique(self.labels)))]
@@ -112,7 +114,7 @@ class Simulation:
                 temp_center_x[cluster.base_station].append(cluster.position[0])
                 temp_center_y[cluster.base_station].append(cluster.position[1])
                 temp_center_z[cluster.base_station].append(cluster.position[2])
-            
+
             self.center_x = [0 for ind in range(len(np.unique(self.labels)))]
             self.center_y = [0 for ind in range(len(np.unique(self.labels)))]
             self.center_z = [0 for ind in range(len(np.unique(self.labels)))]
@@ -120,7 +122,10 @@ class Simulation:
                 self.center_x[ind] = sum(temp_center_x[ind])/len(temp_center_x[ind]) if len(temp_center_x[ind]) != 0 else 0
                 self.center_y[ind] = sum(temp_center_y[ind])/len(temp_center_y[ind]) if len(temp_center_y[ind]) != 0 else 0
                 self.center_z[ind] = sum(temp_center_z[ind])/len(temp_center_z[ind]) if len(temp_center_z[ind]) != 0 else 0
-            
+
+            # if total_cluster < len(self.center_x):
+
+
             cluster_center = np.array([self.center_x,self.center_y,self.center_z]).T
             cluster_center = [[obj,ind] for ind,obj in enumerate(cluster_center)]
             cluster_center = sorted(cluster_center,key=lambda x: [x[0][0],x[0][1],x[0][2]])
@@ -134,17 +139,21 @@ class Simulation:
         current_algorithm = self.config["algorithm"].lower()
         start_time = time.time()
         start_mem = psutil.Process(os.getpid()).memory_info().rss
-        if current_algorithm == "kmeans":
+        total_cluster = self.cluster_head_stats.cluster_head_total
+        if self.current_cycle < self.start_cycle:
+            total_cluster -= 1 
+
+        if current_algorithm == "kmeans" or self.current_cycle < self.start_cycle:
             algo = Kmeans()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(n_clusters = self.cluster_head_stats.cluster_head_total)
+            self.clustering = algo.generateModel(n_clusters = total_cluster)
             new_order = setClusterHeadWithCenters(cluster_center=self.clustering.cluster_centers_)
             self.labels = [new_order[obj] for obj in algo.getLabels()]
             self.cluster_member_stats.setBaseStation(self.labels)
         elif current_algorithm == "mini_kmeans":
             algo = MiniKmeans()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(n_clusters = self.cluster_head_stats.cluster_head_total)
+            self.clustering = algo.generateModel(n_clusters = total_cluster)
             new_order = setClusterHeadWithCenters(cluster_center=self.clustering.cluster_centers_)
             self.labels = [new_order[obj] for obj in algo.getLabels()]
             self.cluster_member_stats.setBaseStation(self.labels)
@@ -166,9 +175,9 @@ class Simulation:
             algo = Balanced()
             algo.setData(self.cluster_member_stats)
             self.clustering = algo.generateModel()
-            new_order = setClusterHeadWithoutCenters()
-            self.labels = [new_order[obj] for obj in algo.getLabels()]
+            self.labels = algo.getLabels()
             self.cluster_member_stats.setBaseStation(self.labels)
+            setClusterHeadWithoutCenters(total_cluster)
         elif current_algorithm == "spectral":
             algo = Spectral()
             algo.setData(self.cluster_member_stats)
@@ -326,6 +335,16 @@ class Simulation:
                     linewidths = 8,
                     edgecolors = "black"
                 )
+            else:
+                self.ax[0].scatter(
+                    bs_x[-1],
+                    bs_y[-1],
+                    s = 300,
+                    c = "none",
+                    marker = "^",
+                    linewidths = 8,
+                    edgecolors = "black"
+                )
             
             for ind,head in enumerate(current_position):
                 circle = plt.Circle(
@@ -374,7 +393,7 @@ class Simulation:
         else:
             self.ax[1].cla()
         
-        data = self.cluster_member_stats.getConnectivity(self.cluster_head_stats.cluster_head_value)
+        data = self.cluster_member_stats.getConnectivity(self.cluster_head_stats.cluster_head_value, self.main_base_station)
         if len(self.graph1_y) > 0 and len(data) != len(self.graph1_y[0]):
             self.graph1_y = []
         if data != []:
@@ -399,7 +418,7 @@ class Simulation:
             self.ax[2].cla()
 
         # data = self.cluster_member_stats.getProbability(self.cluster_head)
-        self.pathloss = self.cluster_member_stats.getPathLoss(self.cluster_head_stats.cluster_head_value, self.config["terrain"])
+        self.pathloss = self.cluster_member_stats.getPathLoss(self.cluster_head_stats.cluster_head_value, self.main_base_station, self.config["terrain"])
         if len(self.graph2_y) > 0 and len(self.pathloss) != len(self.graph2_y[0]):
             self.graph2_y = []
         if self.pathloss != []:
@@ -540,6 +559,7 @@ def initializeClusterHeads(
             current_range = rnge,
             idle_energy = idle_energy,
             move_energy = move_energy,
+
         )
         all_cluster_heads[typ+str(i+1)] = (cluster_head)
 

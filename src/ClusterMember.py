@@ -27,6 +27,7 @@ class ClusterMemberStats:
         with open("pathloss.yml") as f:
             self.pathloss_config = yaml.safe_load(f)["types"]
         self.cluster_member = cluster_member
+        self.connected_total = []
 
     def getPosition(self) -> list:
         return [item.position for item in self.cluster_member]
@@ -98,22 +99,6 @@ class ClusterMemberStats:
                 self.cluster_member[ind].position[0] += delta[0]
                 self.cluster_member[ind].position[1] += delta[1]
     
-    # def getConnectivity(self, cluster_heads:list) -> list:
-    #     total = [0 for head in cluster_heads]
-    #     connected = [0 for head in cluster_heads]
-    #     for cluster in self.cluster_member:
-    #         if cluster.base_station == -1:
-    #             continue
-    #         current_head = cluster_heads[cluster.base_station]
-    #         total[cluster.base_station] += 1
-    #         distance = np.linalg.norm(current_head.position-cluster.position)
-    #         if distance <= current_head.current_range:
-    #             connected[cluster.base_station] += 1
-    #     output = []
-    #     for ind, tot in enumerate(total):
-    #         output.append(connected[ind]/tot*100 if tot != 0 else 0)
-    #     return output
-    
     def getProbability(self, cluster_heads:list) -> list:
         total = [[] for head in cluster_heads]
 
@@ -148,38 +133,25 @@ class ClusterMemberStats:
                 total[ind] = 0
         
         return total
-   
-    # def getPathLoss(self, cluster_heads:list, typ:str) -> list:
-    #     total = [[] for head in cluster_heads]
+
+    # def getPathLoss(self, cluster_heads:list, location:int = 0) -> list:
+    #     total1 = [[] for head in cluster_heads]
+    #     total2 = [[] for head in cluster_heads]
+    #     ch_pos = [x.current_position for x in cluster_heads]
 
     #     for cluster in self.cluster_member:
     #         if cluster.base_station == -1:
     #             continue
+            
     #         current_head = cluster_heads[cluster.base_station]
 
-    #         def freeSpacePathLoss(current_head_position, cluster_member_position):
-    #             current_pathloss_config = list(filter(lambda x:x["name"]=="free space",self.pathloss_config))[0]
-    #             pl0 = current_pathloss_config['pathloss']
-    #             d0 = current_pathloss_config['distance']
-    #             gamma = current_pathloss_config['exponent']
-    #             dist = Distribution().getDistribution(
-    #                 current_pathloss_config['distribution'],
-    #                 current_pathloss_config['param']
-    #             )
-
-    #             distance = np.linalg.norm(current_head_position-cluster_member_position)
-    #             height = abs(current_head_position[2]-cluster_member_position[2])
-
-    #             if distance == 0:
-    #                 return 1
-                
-    #             pl = pl0 + 10*gamma*np.log10(distance/d0) + dist
-
-    #             return pl[0]
-
-    #         def los_nlosPathLoss(current_head_position, cluster_member_position, location = 0):
-    #             a = current_pathloss_config['a']
-    #             b = current_pathloss_config['b']
+    #         def los_nlosPathLoss(current_head_position, cluster_member_position, location):
+    #             def dbmToDb(x):
+    #                 out = 10**(x/10-3)
+    #                 return 10*np.log10(out)
+    #             current_pathloss_config = list(filter(lambda x:x["name"]=="los/nlos",self.pathloss_config))[0]
+    #             a = current_pathloss_config['a'][location]
+    #             b = current_pathloss_config['b'][location]
     #             fc = current_pathloss_config['fc']
     #             eta_los = current_pathloss_config['eta_los'][location]
     #             eta_nlos = current_pathloss_config['eta_nlos'][location]
@@ -188,108 +160,131 @@ class ClusterMemberStats:
 
     #             distance = np.linalg.norm(current_head_position-cluster_member_position)
     #             height = abs(current_head_position[2]-cluster_member_position[2])
-
-    #             # print(distance, height)
-    #             if distance == 0:
-    #                 return 1
                 
     #             theta = np.arcsin(height/distance)*180/np.pi
                 
     #             prob_los = 1/(1 + a * np.exp(1)**(-1*b*(theta - a)))
     #             prob_nlos = 1 - prob_los
 
-    #             loss = 20*np.log10(4*np.pi*fc*d/c) + eta_los*prob_los + eta_nlos*prob_nlos
+    #             loss = 20*np.log10(4*np.pi*fc*distance/c) + eta_los*prob_los + eta_nlos*prob_nlos
+    #             # loss = 20*np.log10(4*np.pi*fc*distance/c) + eta_los   
+                
+    #             g_db = 3 #dB
+    #             p_min = dbmToDb(20)
+    #             p_transmit = dbmToDb(50)
+    #             # p_min = 20
+    #             # p_transmit = 50
+    #             noise = dbmToDb(-174) #dBm/Hz
 
-    #             return loss
+    #             def qfunc(x):
+    #                 return 0.5-0.5*sp.erf(x/np.sqrt(2))
+                    
+    #             connectivity = prob_los*qfunc((p_min+loss-p_transmit-g_db+eta_los)/noise) + prob_nlos*qfunc((p_min+loss-p_transmit-g_db+eta_nlos)/noise)
+
+    #             return loss, connectivity*100
             
-    #         if typ == "free space":
-    #             loss = freeSpacePathLoss(current_head.position, cluster.position)
-    #         elif typ == "los/nlos":
-    #             loss = los_nlosPathLoss(current_head.position, cluster.position)
-    #         else:
-    #             return NotImplementedError
-    #         total[cluster.base_station].append(loss)
-        
-    #     for ind, item in enumerate(total):
-    #         if len(item) > 0:
-    #             total[ind] = sum(item)/len(item)
-    #         else:
-    #             total[ind] = 0
-        
-    #     return total
+    #         # print(ch_pos)
+    #         # print(cluster.base_station)
+    #         # print(cluster.position)
+    #         loss, connectivity = los_nlosPathLoss(current_head.current_position, cluster.position, location)
+    #         total1[cluster.base_station].append(loss)
+    #         total2[cluster.base_station].append(connectivity)
 
-    def getPathLoss(self, cluster_heads:list, location:int = 0) -> list:
+    #     for ind, item in enumerate(total1):
+    #         if len(item) > 0:
+    #             total1[ind] = sum(item)/len(item)
+    #         else:
+    #             total1[ind] = 0
+
+    #     for ind, item in enumerate(total2):
+    #         if len(item) > 0:
+    #             total2[ind] = sum(item)/len(item)
+    #         else:
+    #             total2[ind] = 0
+        
+    #     self.connected_total = total2
+        
+    #     return total1
+
+    def getPathLoss(self, cluster_heads:list, main_position:np.array, location:int = 0)-> list:
         total1 = [[] for head in cluster_heads]
         total2 = [[] for head in cluster_heads]
-        ch_pos = [x.current_position for x in cluster_heads]
 
         for cluster in self.cluster_member:
             if cluster.base_station == -1:
                 continue
-            
+
             current_head = cluster_heads[cluster.base_station]
+            current_head_position = current_head.current_position
+            cluster_member_position = cluster.position
+    
+            current_pathloss_config = list(filter(lambda x:x["name"]=="los/nlos",self.pathloss_config))[0]
+            a = current_pathloss_config['a'][location]
+            b = current_pathloss_config['b'][location]
+            freq = current_pathloss_config['fc']
+            eta_los = current_pathloss_config['eta_los'][location]
+            eta_nlos = current_pathloss_config['eta_nlos'][location]
+            g0 = current_pathloss_config['g0'] # TODO: check source
 
-            def los_nlosPathLoss(current_head_position, cluster_member_position, location):
-                def dbmToDb(x):
-                    out = 10**(x/10-3)
-                    return 10*np.log10(out)
-                current_pathloss_config = list(filter(lambda x:x["name"]=="los/nlos",self.pathloss_config))[0]
-                a = current_pathloss_config['a'][location]
-                b = current_pathloss_config['b'][location]
-                fc = current_pathloss_config['fc']
-                eta_los = current_pathloss_config['eta_los'][location]
-                eta_nlos = current_pathloss_config['eta_nlos'][location]
+            # https://www.researchgate.net/publication/338998664_Air-to-Ground_channel_model_for_UAVs_in_Dense_UrbanEnvironments
+            distance = np.linalg.norm(current_head_position-cluster_member_position)
+            height = abs(current_head_position[2]-cluster_member_position[2])
+            theta = np.arcsin(height/distance)*180/np.pi
 
-                c = 300000000
+            free_space_pl = 20*np.log10(distance*freq) - 147.55
 
-                distance = np.linalg.norm(current_head_position-cluster_member_position)
-                height = abs(current_head_position[2]-cluster_member_position[2])
-                
-                theta = np.arcsin(height/distance)*180/np.pi
-                
-                prob_los = 1/(1 + a * np.exp(1)**(-1*b*(theta - a)))
-                prob_nlos = 1 - prob_los
+            d2 = current_head.getDistance(main_position)
+            if d2 == 0:
+                d2 = 0.1
+            excess_pl = height*np.sqrt(2/(3*10**8/freq)*(1/distance+1/d2))
 
-                loss = 20*np.log10(4*np.pi*fc*distance/c) + eta_los*prob_los + eta_nlos*prob_nlos
-                # loss = 20*np.log10(4*np.pi*fc*distance/c) + eta_los   
-                
-                g_db = 3 #dB
-                p_min = dbmToDb(20)
-                p_transmit = dbmToDb(50)
-                # p_min = 20
-                # p_transmit = 50
-                noise = dbmToDb(-174) #dBm/Hz
+            prob_los = 1/(1 + a*np.exp(1)**(-1*b*(theta-a)))
+            prob_nlos = 1 - prob_los
 
-                def qfunc(x):
-                    return 0.5-0.5*sp.erf(x/np.sqrt(2))
-                    
-                connectivity = prob_los*qfunc((p_min+loss-p_transmit-g_db+eta_los)/noise) + prob_nlos*qfunc((p_min+loss-p_transmit-g_db+eta_nlos)/noise)
-
-                return loss, connectivity*100
+            theta3 = 107.6*10**(-0.1*g0)
+            gain = g0
+            if theta <= theta3:
+                gain -= 12*(theta/theta3)**2
+            else:
+                gain -= 12 + 10*np.log10(theta/theta3)
+            antenna_loss = -2*(gain)
+            difrac_loss = -20*np.log10(0.225/excess_pl) if excess_pl>0 else 0
+            mean_pl = free_space_pl + antenna_loss + difrac_loss + 20*np.log10(1-prob_los)
             
-            # print(ch_pos)
-            # print(cluster.base_station)
-            # print(cluster.position)
-            loss, connectivity = los_nlosPathLoss(current_head.current_position, cluster.position, location)
-            total1[cluster.base_station].append(loss)
-            total2[cluster.base_station].append(connectivity)
+            total1[cluster.base_station].append(mean_pl)
 
-        for ind, item in enumerate(total1):
+            def qfunc(x):
+                return 0.5-0.5*sp.erf(x/np.sqrt(2))
+            
+            def dbmToDb(x):
+                return 10*np.log10(10**(x/10-3))
+
+            g_db = 3 #dB
+            p_min = dbmToDb(20)
+            p_transmit = dbmToDb(50)
+            noise = dbmToDb(-174)
+            
+            connectivity = prob_los*qfunc((p_min+mean_pl-p_transmit-g_db+eta_los)/noise) + prob_nlos*qfunc((p_min+mean_pl-p_transmit-g_db+eta_nlos)/noise)
+            total2[cluster.base_station].append(connectivity)
+        
+        for ind,item in enumerate(total1):
             if len(item) > 0:
                 total1[ind] = sum(item)/len(item)
             else:
                 total1[ind] = 0
 
-        for ind, item in enumerate(total2):
+        for ind,item in enumerate(total2):
             if len(item) > 0:
-                total2[ind] = sum(item)/len(item)
+                total2[ind] = sum(item)/len(item)*100
             else:
                 total2[ind] = 0
         
         self.connected_total = total2
-        
+
         return total1
 
-    def getConnectivity(self, cluster_heads:list) -> list:
-        self.getPathLoss(cluster_heads)
+    def getConnectivity(self, cluster_heads:list, main_position:np.array) -> list:
+        self.getPathLoss(cluster_heads, main_position)
         return self.connected_total
+
+

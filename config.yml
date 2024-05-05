@@ -46,7 +46,7 @@ cluster_nodes: [
   {
     distribution: "poisson",
     param: [
-      [1000,1000,5],
+      [500,500,5],
       [400,3],
       15
     ]
@@ -86,7 +86,7 @@ bs_range: 400
 bs_height: 80
 
 bs_location: [
-  [1000,1000],
+  [500,500],
   [2200,2000],
   [1000,1700]
 ]
@@ -96,8 +96,8 @@ uav_total: 3
 uav_speed: 10
 uav_range: 500
 uav_height: 150
-uav_idle_energy: 10
-uav_move_energy: 100
+uav_idle_energy: 7870.788 # Citation
+uav_move_energy: 72.405
 
 evacuate_point: [1500,1500]
 evacuate_radius: 500
