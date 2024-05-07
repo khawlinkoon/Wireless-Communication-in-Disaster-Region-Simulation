@@ -263,7 +263,7 @@ class Simulation:
             
             if self.config["save"]:
                 self.fig.savefig("Results\\map.png",dpi=300)
-                # self.saveGraph()
+                self.saveGraph()
                 print("Saved")
         elif current_time % 5 == 0:
             self.drawGraph1()
@@ -448,15 +448,18 @@ class Simulation:
 
         connectivity_mean = f"{np.mean(self.graph1_y)/100:.5f}" if len(self.graph1_y)>0 else "0"
         uplink_mean = f"{np.mean(self.graph2_y):.2f} dB" if len(self.graph2_y)>0 else "0 dB"
+        energy_mean = f"{np.mean(self.graph4_y):.2f} kW" if len(self.graph4_y)>0 else "0 kW"
 
+        algorithm = self.config['algorithm']
         read_input = [
-            self.config["algorithm"].replace("_"," ").title(),
-            self.initial_runtime.format(len(self.config["algorithm"])),
-            # self.total_runtime.format(len(self.config["algorithm"])),
-            self.initial_memory.format(len(self.config["algorithm"])),
-            # self.total_memory.format(len(self.config["algorithm"])),
-            connectivity_mean.format(len(self.config["algorithm"])),
-            uplink_mean.format(len(self.config["algorithm"])),
+            algorithm.replace("_"," ").title(),
+            self.initial_runtime.format(len(algorithm)),
+            # self.total_runtime.format(len(algorithm)),
+            self.initial_memory.format(len(algorithm)),
+            # self.total_memory.format(len(algorithm)),
+            connectivity_mean.format(len(algorithm)),
+            uplink_mean.format(len(algorithm)),
+            energy_mean.format(len(algorithm))
         ]
 
         row_labels = [
@@ -467,6 +470,7 @@ class Simulation:
             # "Algorithm memory usage   ", 
             "Average Coverage         ", 
             "Average Path Loss        ", 
+            "Average Energy Used      ",
         ]
 
         cell_text = [[text] for text in read_input]
@@ -496,11 +500,11 @@ class Simulation:
         self.graph4_x = [ind for ind in range(len(self.graph4_y))]
 
         self.ax[4].plot(self.graph4_x,self.graph4_y)
-        # self.ax[4].plot([0,12], [3000]*2)
+        # self.ax[4].plot([0,12], [2000]*2)
         self.ax[4].set_xlim([0,self.config["cycle_frames"]/5])
         # self.ax[4].set_ylim([0,5000])
         self.ax[4].set_xlabel("Time (frame)")
-        self.ax[4].set_ylabel("Energy Used (W)")
+        self.ax[4].set_ylabel("Energy Used (kW)")
         self.ax[4].set_title("UAV energy content")
 
 
@@ -510,14 +514,24 @@ class Simulation:
         ax[0].set_xlim([0,self.config["cycle_frames"]/5])
         ax[0].set_ylim([0,100])
         ax[0].set_title("Connectivity Ratio")
-        ax[0].legend([f"UAV {i+1}" for i in range(len(self.cluster_head))], loc="lower right")
+        ax[0].legend(self.cluster_head_stats.id_num)
 
         ax[1].plot(self.graph2_x,self.graph2_y)
         ax[1].set_xlim([0,self.config["cycle_frames"]/5])
-        ax[1].set_ylim([60,120])
+        ax[1].set_ylim([80,140])
         ax[1].set_title("Path Loss")
-        ax[1].legend([f"UAV {i+1}" for i in range(len(self.cluster_head))], loc="lower right")
+        ax[1].legend(self.cluster_head_stats.id_num)
         fig.savefig("Results\\results.png",dpi=300)
+        plt.close()
+
+        fig, ax = plt.subplots()
+        ax.plot(self.graph4_x,self.graph4_y)
+        ax.set_xlim([0,self.config["cycle_frames"]/5])
+        ax.set_title("UAV energy content")
+        ax.set_xlabel("Time (frame)")
+        ax.set_ylabel("Energy used (kW)")
+        ax.legend(self.cluster_head_stats.id_num)
+        fig.savefig("Results\\energy.png", dpi=300)
         plt.close()
     
 def initializeClusterMembers(

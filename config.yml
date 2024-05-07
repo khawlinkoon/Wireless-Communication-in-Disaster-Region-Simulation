@@ -28,7 +28,7 @@ pathloss: "los/nlos"
 
 dynamic: True
 evacuating: True
-save: False
+save: True
 
 # Data Generation
 random_nodes: [
@@ -71,10 +71,10 @@ cluster_nodes: [
 
 energy: [
   {
-    distribution: "normal",
+    distribution: "uniform",
     param: [
-        100,
-        5,
+        3000,
+        15000,
         1
     ]
   }
@@ -96,8 +96,8 @@ uav_total: 3
 uav_speed: 10
 uav_range: 500
 uav_height: 150
-uav_idle_energy: 72.405 # Communication
-uav_move_energy: 7870.788 
+uav_idle_energy: 76.8 # Communication
+uav_move_energy: 1335.456 
 
 evacuate_point: [1500,1500]
 evacuate_radius: 500
