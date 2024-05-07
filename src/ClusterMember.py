@@ -62,6 +62,21 @@ class ClusterMemberStats:
             current_group = cluster.base_station
             output[current_group] = max(output[current_group],np.linalg.norm(centers[current_group] - cluster.position))
         return output
+    
+    def getClusterHead(self, centers: list) -> list:
+        cluster_head = [[] for i in range(len(centers))]
+        for ind, cluster in enumerate(self.cluster_member):
+            current_group = cluster.base_station
+            x = np.array([centers[current_group][0], centers[current_group][1]])
+            y = np.array([cluster.position[0], cluster.position[1]])
+            distance = np.linalg.norm(x - y)
+            cluster_head[current_group].append([distance, -1*cluster.energy[0], ind])
+        for ind in range(len(cluster_head)):
+            # print(cluster_head[ind])
+            cluster_head[ind] = sorted(cluster_head[ind], key=lambda x: [x[0], x[1]])
+            # print(cluster_head[ind])
+        return [x[0][2] for x in cluster_head]
+        # return cluster_head
 
     def updatePosition(self, setpoint:list, towards:bool = False) -> None:
         for ind in range(len(self.cluster_member)):

@@ -28,7 +28,8 @@ pathloss: "los/nlos"
 
 dynamic: True
 evacuating: True
-save: True
+save: False
+new_algo: True
 
 # Data Generation
 random_nodes: [

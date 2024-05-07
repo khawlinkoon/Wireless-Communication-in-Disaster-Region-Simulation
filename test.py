@@ -3,8 +3,8 @@ import yaml
 import numpy as np
 
 # print(np.random.choice([-1,1],p=[0.3,0.7]))
-# for i in range(10):
-#     print(sum(np.random.uniform(3000,15000,[100,1]))/100)
+for i in range(10):
+    print(sum(np.random.uniform(3000,15000,1))/100)
 
 
 import matplotlib.pyplot as plt

@@ -44,6 +44,7 @@ class Simulation:
         self.base_station_point.append(self.evacuate_point)
         self.main_base_station = self.base_station_point[-1]
         self.evacuating = self.config["evacuating"]
+        self.new_algo = self.config["new_algo"]
         self.dist_obj = Distribution()
         self.uav_total = self.config["uav_total"]
         self.cluster_member = initializeClusterMembers(
@@ -95,14 +96,15 @@ class Simulation:
     
     def getClusteringAlgo(self):
         def setClusterHeadWithCenters(cluster_center: np.array) -> list:
-            cluster_center = [[obj,ind] for ind,obj in enumerate(cluster_center)]
-            cluster_center = sorted(cluster_center,key=lambda x: [x[0][0],x[0][1],x[0][2]])
-            new_order = [obj[1] for obj in cluster_center]
-            cluster_center = [obj[0] for obj in cluster_center]
-            self.center_x, self.center_y, self.center_z = np.array(cluster_center).T
-            max_distance = self.cluster_member_stats.maxDistance(cluster_center)
+            self.new_cluster_center = [[obj,ind] for ind,obj in enumerate(cluster_center)]
+            self.new_cluster_center = sorted(self.new_cluster_center,key=lambda x: [x[0][0],x[0][1],x[0][2]])
+
+            new_order = [obj[1] for obj in self.new_cluster_center]
+            self.new_cluster_center = [obj[0] for obj in self.new_cluster_center]
+            self.center_x, self.center_y, self.center_z = np.array(self.new_cluster_center).T
+
             # self.cluster_head_stats.updateOrder(new_order)
-            self.cluster_head_stats.updateEndPosition(len(cluster_center), cluster_center, self.uav_height)
+            self.cluster_head_stats.updateEndPosition(len(self.new_cluster_center), self.new_cluster_center, self.uav_height)
             return new_order
             
         def setClusterHeadWithoutCenters(total_cluster: int) -> list:
@@ -126,14 +128,14 @@ class Simulation:
             # if total_cluster < len(self.center_x):
 
 
-            cluster_center = np.array([self.center_x,self.center_y,self.center_z]).T
-            cluster_center = [[obj,ind] for ind,obj in enumerate(cluster_center)]
-            cluster_center = sorted(cluster_center,key=lambda x: [x[0][0],x[0][1],x[0][2]])
-            new_order = [obj[1] for obj in cluster_center]
-            cluster_center = [obj[0] for obj in cluster_center]
-            max_distance = self.cluster_member_stats.maxDistance(cluster_center)
+            self.new_cluster_center = np.array([self.center_x,self.center_y,self.center_z]).T
+            self.new_cluster_center = [[obj,ind] for ind,obj in enumerate(self.new_cluster_center)]
+            self.new_cluster_center = sorted(self.new_cluster_center,key=lambda x: [x[0][0],x[0][1],x[0][2]])
+            new_order = [obj[1] for obj in self.new_cluster_center]
+            self.new_cluster_center = [obj[0] for obj in self.new_cluster_center]
+            self.new_max_distance = self.cluster_member_stats.maxDistance(self.new_cluster_center)
             # self.cluster_head_stats.updateOrder(new_order)
-            self.cluster_head_stats.updateEndPosition(len(cluster_center), cluster_center, self.uav_height)
+            self.cluster_head_stats.updateEndPosition(len(self.new_cluster_center), self.new_cluster_center, self.uav_height)
             return new_order
 
         current_algorithm = self.config["algorithm"].lower()
@@ -148,7 +150,11 @@ class Simulation:
             algo.setData(self.cluster_member_stats)
             self.clustering = algo.generateModel(n_clusters = total_cluster)
             new_order = setClusterHeadWithCenters(cluster_center=self.clustering.cluster_centers_)
-            self.labels = [new_order[obj] for obj in algo.getLabels()]
+            self.labels = []
+            for obj in algo.getLabels():
+                for ind in range(len(new_order)):
+                    if new_order[ind] == obj:
+                        self.labels.append(ind)
             self.cluster_member_stats.setBaseStation(self.labels)
         elif current_algorithm == "mini_kmeans":
             algo = MiniKmeans()
@@ -209,6 +215,10 @@ class Simulation:
             setClusterHeadWithoutCenters()
         else:
             return NotImplementedError
+        
+        if self.new_algo:
+            self.new_cluster_head_id = self.cluster_member_stats.getClusterHead(self.new_cluster_center)
+            print(self.new_cluster_head_id)
         
         self.total_memory = str((psutil.Process(os.getpid()).memory_info().rss - start_mem)/1024) + " kB"
         self.total_runtime = f"{(time.time()-start_time)*1000:.2f} ms"
@@ -292,6 +302,10 @@ class Simulation:
             colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
             color_label = [colors[label%10] for label in self.labels]
             self.ax[0].scatter(x, y, c= color_label)
+
+            if self.new_algo:
+                for ind in self.new_cluster_head_id:
+                    self.ax[0].scatter(x[ind],y[ind], s=100, c=color_label[ind], linewidth=3 ,edgecolors="r")
             
             patch = []
             for ind, group in enumerate(np.unique([f"Cluster {label+1}" for label in self.labels])):
