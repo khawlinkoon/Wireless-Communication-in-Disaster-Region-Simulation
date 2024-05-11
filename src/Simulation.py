@@ -47,6 +47,8 @@ class Simulation:
         self.new_algo = self.config["new_algo"]
         self.dist_obj = Distribution()
         self.uav_total = self.config["uav_total"]
+        self.communication_energy = self.config["communication_energy"]
+        self.leach_probability = self.config["leach_probability"]
         self.cluster_member = initializeClusterMembers(
             length = self.config["length"],
             width = self.config["width"],
@@ -88,6 +90,7 @@ class Simulation:
         self.base_station_stats = ClusterHeadStats(self.base_station)
         self.cluster_head_stats = self.base_station_stats
         self.cluster_member_stats = ClusterMemberStats(self.cluster_member)
+        self.new_cluster_center = []
         self.initial_runtime = ""
         self.initial_memory = ""
         self.total_runtime = "0 ms"
@@ -96,14 +99,19 @@ class Simulation:
     
     def getClusteringAlgo(self):
         def setClusterHeadWithCenters(cluster_center: np.array) -> list:
+            # old_cluster_center = self.new_cluster_center
             self.new_cluster_center = [[obj,ind] for ind,obj in enumerate(cluster_center)]
+
+            # if len(old_cluster_center) == 0:
             self.new_cluster_center = sorted(self.new_cluster_center,key=lambda x: [x[0][0],x[0][1],x[0][2]])
+
 
             new_order = [obj[1] for obj in self.new_cluster_center]
             self.new_cluster_center = [obj[0] for obj in self.new_cluster_center]
             self.center_x, self.center_y, self.center_z = np.array(self.new_cluster_center).T
 
-            # self.cluster_head_stats.updateOrder(new_order)
+            # if self.current_cycle >= self.start_cycle:
+            #     self.cluster_head_stats.updateOrder(new_order)
             self.cluster_head_stats.updateEndPosition(len(self.new_cluster_center), self.new_cluster_center, self.uav_height)
             return new_order
             
@@ -134,7 +142,9 @@ class Simulation:
             new_order = [obj[1] for obj in self.new_cluster_center]
             self.new_cluster_center = [obj[0] for obj in self.new_cluster_center]
             self.new_max_distance = self.cluster_member_stats.maxDistance(self.new_cluster_center)
-            # self.cluster_head_stats.updateOrder(new_order)
+
+            if self.current_cycle >= self.start_cycle:
+                self.cluster_head_stats.updateOrder(new_order)
             self.cluster_head_stats.updateEndPosition(len(self.new_cluster_center), self.new_cluster_center, self.uav_height)
             return new_order
 
@@ -148,7 +158,7 @@ class Simulation:
         if current_algorithm == "kmeans" or self.current_cycle < self.start_cycle:
             algo = Kmeans()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(n_clusters = total_cluster)
+            self.clustering = algo.generateModel(optimal = False if self.current_cycle < self.start_cycle else not self.config["use_all_uav"], n_clusters = total_cluster)
             new_order = setClusterHeadWithCenters(cluster_center=self.clustering.cluster_centers_)
             self.labels = []
             for obj in algo.getLabels():
@@ -217,8 +227,9 @@ class Simulation:
             return NotImplementedError
         
         if self.new_algo:
-            self.new_cluster_head_id = self.cluster_member_stats.getClusterHead(self.new_cluster_center)
-            print(self.new_cluster_head_id)
+            # self.new_node_head_id = self.cluster_member_stats.getClusterHead(self.new_cluster_center)
+            self.new_node_head_id = self.cluster_member_stats.getLeachCh(self.new_cluster_center, self.leach_probability)
+            print(self.new_node_head_id)
         
         self.total_memory = str((psutil.Process(os.getpid()).memory_info().rss - start_mem)/1024) + " kB"
         self.total_runtime = f"{(time.time()-start_time)*1000:.2f} ms"
@@ -283,7 +294,7 @@ class Simulation:
         else:
             pass
         if self.config["dynamic"]:
-            self.cluster_member_stats.updatePosition(self.evacuate_point,self.evacuating)  
+            self.cluster_member_stats.updatePosition(self.evacuate_point, self.evacuating, self.communication_energy/3)
             self.cluster_head_stats.updatePosition()
         self.drawMap(update=True)
 
@@ -303,9 +314,10 @@ class Simulation:
             color_label = [colors[label%10] for label in self.labels]
             self.ax[0].scatter(x, y, c= color_label)
 
-            if self.new_algo:
-                for ind in self.new_cluster_head_id:
-                    self.ax[0].scatter(x[ind],y[ind], s=100, c=color_label[ind], linewidth=3 ,edgecolors="r")
+            if self.new_algo and self.current_cycle >= self.start_cycle:
+                for ind in self.new_node_head_id:
+                    self.ax[0].scatter(x[ind],y[ind], s=100, c=color_label[ind], linewidth=3 ,edgecolors="black")
+                    self.cluster_member_stats.updateEnergySingle(ind, self.communication_energy)
             
             patch = []
             for ind, group in enumerate(np.unique([f"Cluster {label+1}" for label in self.labels])):
@@ -318,14 +330,15 @@ class Simulation:
             current_range = self.cluster_head_stats.getCurrentRange()
 
             # Cluster Centers
-            self.ax[0].scatter(
-                self.center_x, 
-                self.center_y, 
-                s = 150, 
-                c = "none", 
-                marker = "X", 
-                linewidths = 2.5, 
-                edgecolors = "black")
+            if self.current_cycle >= self.start_cycle:
+                self.ax[0].scatter(
+                    self.center_x, 
+                    self.center_y, 
+                    s = 150, 
+                    c = "none", 
+                    marker = "X", 
+                    linewidths = 2.5, 
+                    edgecolors = "black")
 
             uav_x, uav_y, uav_z = current_position.T
             # print(uav_x, uav_y)
@@ -574,6 +587,8 @@ def initializeClusterMembers(
             axis=0)
     
     for i,position in enumerate(all_cluster_members_position):
+        position[0] = min(position[0], length-1)
+        position[1] = min(position[1], width-1)
         position[2] = height[position[0]][position[1]]
         cluster_member = ClusterMember(
             position = position,

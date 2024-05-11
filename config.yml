@@ -29,7 +29,6 @@ pathloss: "los/nlos"
 dynamic: True
 evacuating: True
 save: False
-new_algo: True
 
 # Data Generation
 random_nodes: [
@@ -38,7 +37,7 @@ random_nodes: [
     param: [
       [0,0,0],
       [*length,*width,10],
-      [150,3]
+      [300,3]
     ]
   }
 ]
@@ -48,23 +47,23 @@ cluster_nodes: [
     distribution: "poisson",
     param: [
       [500,500,5],
-      [400,3],
+      [150,3],
+      30
+    ]
+  },
+  {
+    distribution: "poisson",
+    param: [
+      [2500,1200,5],
+      [150,3],
       15
     ]
   },
   {
     distribution: "poisson",
     param: [
-      [2200,2000,5],
-      [250,3],
-      15
-    ]
-  },
-  {
-    distribution: "poisson",
-    param: [
-      [1000,1700,5],
-      [200,3],
+      [1500,2300,5],
+      [100,3],
       15
     ]
   },
@@ -81,6 +80,8 @@ energy: [
   }
 ]
 
+communication_energy: 76.8
+
 # Base station settings
 bs_total: 3
 bs_range: 400
@@ -88,20 +89,26 @@ bs_height: 80
 
 bs_location: [
   [500,500],
-  [2200,2000],
-  [1000,1700]
+  [2500,1200],
+  [1500,2300]
 ]
 
 # UAV settings
-uav_total: 3
+uav_total: 3    # Change to 1 for just LEACH
 uav_speed: 10
 uav_range: 500
 uav_height: 150
+use_all_uav: True
 uav_idle_energy: 76.8 # Communication
 uav_move_energy: 1335.456 
 
 evacuate_point: [1500,1500]
 evacuate_radius: 500
+
+# LEACH settings
+new_algo: True
+leach_probability: 0.05
+
 
 # x, y, wdith, height
 # disaster_zones: [

@@ -11,9 +11,9 @@ class ClusterMember:
         self.mobility = mobility
         self.energy = energy
 
-
         self.base_station = -1
         self.connected = False
+        self.leach_status = False
 
     
     def printPosition(self) -> str:
@@ -29,14 +29,20 @@ class ClusterMemberStats:
         self.cluster_member = cluster_member
         self.connected_total = []
 
-    def getPosition(self) -> list:
-        return [item.position for item in self.cluster_member]
+    def getPosition(self) -> np.array:
+        return np.array([item.position for item in self.cluster_member])
     
     def getMobility(self) -> list:
         return [item.mobility for item in self.cluster_member]
         
     def getEnergy(self) -> list:
         return [item.energy[0] for item in self.cluster_member]
+
+    def getLeachStatus(self) -> list:
+        return [item.leach_status for item in self.cluster_member]
+
+    def updateEnergySingle(self, ind: int, energy: float) -> None:
+        self.cluster_member[ind].energy -= energy
 
     def setMobility(self, cycle: int) -> None:
         if cycle < 2 and cycle != 0:
@@ -72,14 +78,33 @@ class ClusterMemberStats:
             distance = np.linalg.norm(x - y)
             cluster_head[current_group].append([distance, -1*cluster.energy[0], ind])
         for ind in range(len(cluster_head)):
-            # print(cluster_head[ind])
             cluster_head[ind] = sorted(cluster_head[ind], key=lambda x: [x[0], x[1]])
-            # print(cluster_head[ind])
         return [x[0][2] for x in cluster_head]
-        # return cluster_head
+    
+    def getLeachCh(self, centers: list, prob: float) -> list:
+        clusterTrue = [[] for i in range(len(centers))]
+        clusterFalse = [[] for i in range(len(centers))]
+        for ind, cluster in enumerate(self.cluster_member):
+            current_group = cluster.base_station
+            if cluster.leach_status:
+                clusterTrue[current_group].append(ind)
+            else:
+                clusterFalse[current_group].append(ind)
+        selected = []
+        for i in range(len(centers)):
+            
+            if len(clusterFalse[i]) < 10:
+                swap(clusterFalse, clustefrTrue)
+            for ch in clusterFalse[i]:
+                choice = np.random.choice([True,False],p=[prob,1-prob])
+                if choice:
+                    selected.append(ch)
+                    self.cluster_member[i].leach_status = not self.cluster_member[i].leach_status
+        return selected
 
-    def updatePosition(self, setpoint:list, towards:bool = False) -> None:
+    def updatePosition(self, setpoint:list, energy:float, towards:bool = False) -> None:
         for ind in range(len(self.cluster_member)):
+            self.cluster_member[ind].energy -= energy
             delta = self.cluster_member[ind].mobility.changePos()
             
             distance = 999999999999999999

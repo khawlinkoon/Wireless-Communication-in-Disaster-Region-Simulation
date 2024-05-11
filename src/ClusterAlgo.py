@@ -21,19 +21,42 @@ class Kmeans:
         n_clusters : int = 5,
         n_init : int = 10,
     ) -> KMeans:
+        if optimal:
+            n_clusters = self.optimalClusterSize(n_clusters)
         self.model = KMeans(n_clusters=n_clusters, n_init=n_init)
         self.model.fit(self.data)
         self.cluster_center = [list(x) for x in self.model.cluster_centers_]
         self.label = self.model.labels_
-        # temp = sorted(zip(self.cluster_center,np.unique(self.label)))
-        # self.cluster_center = np.array([x for x,_ in temp])
-        # self.label = [temp[x][1] for x in self.model.labels_]
         self.stats.setBaseStation(self.label)
 
         return self.model
     
     def getLabels(self) -> list:
         return self.label
+
+    def optimalClusterSize(
+        self,
+        maxClusters: int = 5,
+        nrefs: int = 5
+    ) -> int:
+        gaps = np.zeros((len(range(1, maxClusters)),))
+        resultsdf = []
+        for gap_index, k in enumerate(range(1, maxClusters)):
+            refDisps = np.zeros(nrefs)
+            for i in range(nrefs):
+                randomReference = np.random.random_sample(size=self.data.shape)
+                km = KMeans(n_clusters=k, n_init=10)
+                km.fit(randomReference)
+                refDisp = km.inertia_
+                refDisps[i] = refDisp
+
+            km = KMeans(n_clusters=k, n_init=10)
+            km.fit(self.data)
+            origDisp = km.inertia_
+            gap = np.log(np.mean(refDisps)) - np.log(origDisp)
+            gaps[gap_index] = gap
+            resultsdf.append([k,gap])
+        return gaps.argmax() + 1
     
 
 # TODO: Test different parameters
