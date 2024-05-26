@@ -19,7 +19,7 @@ types: [
   },
   {
     name: "car",
-    distribution: "randint",
+    distribution: "uniform",
     param: [
       -10,
       10,

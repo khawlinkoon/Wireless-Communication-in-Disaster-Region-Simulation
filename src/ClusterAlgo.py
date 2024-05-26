@@ -22,7 +22,7 @@ class Kmeans:
         n_init : int = 10,
     ) -> KMeans:
         if optimal:
-            n_clusters = self.optimalClusterSize(n_clusters)
+            n_clusters = self.optimalClusterSize(maxClusters = n_clusters)
         self.model = KMeans(n_clusters=n_clusters, n_init=n_init)
         self.model.fit(self.data)
         self.cluster_center = [list(x) for x in self.model.cluster_centers_]
@@ -36,7 +36,7 @@ class Kmeans:
 
     def optimalClusterSize(
         self,
-        maxClusters: int = 5,
+        maxClusters: int,
         nrefs: int = 5
     ) -> int:
         gaps = np.zeros((len(range(1, maxClusters)),))
@@ -71,8 +71,8 @@ class DensityBased:
 
     def generateModel(
         self,
-        eps : float = 200,
-        min_samples: int = 20,
+        eps : float = 300,
+        min_samples: int = 100,
     ) -> DBSCAN:
         self.model = DBSCAN(eps=eps, min_samples=min_samples)
         self.model.fit(self.data)
@@ -99,12 +99,9 @@ class MiniKmeans:
         n_clusters : int = 5,
         n_init : int = 10,
     ) -> MiniBatchKMeans:
-        if n_clusters != 5:
-            self.model = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_init)
-        elif optimal:
-            self.model = MiniBatchKMeans(n_clusters=self.getOptimalCluster(), n_init=n_init)
-        else:
-            self.model = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_init)
+        if optimal:
+            n_clusters = self.optimalClusterSize(maxClusters = n_clusters)
+        self.model = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_init)
         self.model.fit(self.data)
         self.stats.setBaseStation(self.model.labels_)
         return self.model
@@ -113,6 +110,30 @@ class MiniKmeans:
         self,
     ) -> list:
         return self.model.labels_
+    
+    def optimalClusterSize(
+        self,
+        maxClusters: int,
+        nrefs: int = 5
+    ) -> int:
+        gaps = np.zeros((len(range(1, maxClusters)),))
+        resultsdf = []
+        for gap_index, k in enumerate(range(1, maxClusters)):
+            refDisps = np.zeros(nrefs)
+            for i in range(nrefs):
+                randomReference = np.random.random_sample(size=self.data.shape)
+                km = KMeans(n_clusters=k, n_init=10)
+                km.fit(randomReference)
+                refDisp = km.inertia_
+                refDisps[i] = refDisp
+
+            km = KMeans(n_clusters=k, n_init=10)
+            km.fit(self.data)
+            origDisp = km.inertia_
+            gap = np.log(np.mean(refDisps)) - np.log(origDisp)
+            gaps[gap_index] = gap
+            resultsdf.append([k,gap])
+        return gaps.argmax() + 1
 
 class AffinityProp:
     def setData(

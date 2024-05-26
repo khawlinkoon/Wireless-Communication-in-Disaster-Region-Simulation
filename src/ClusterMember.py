@@ -81,7 +81,7 @@ class ClusterMemberStats:
             cluster_head[ind] = sorted(cluster_head[ind], key=lambda x: [x[0], x[1]])
         return [x[0][2] for x in cluster_head]
     
-    def getLeachCh(self, centers: list, prob: float) -> list:
+    def getLeachCh(self, centers: list, prob: float, rnd: int) -> list:
         clusterTrue = [[] for i in range(len(centers))]
         clusterFalse = [[] for i in range(len(centers))]
         for ind, cluster in enumerate(self.cluster_member):
@@ -91,10 +91,11 @@ class ClusterMemberStats:
             else:
                 clusterFalse[current_group].append(ind)
         selected = []
+        # # prob = prob/(1-prob*(rnd%(1/prob)))
+        # print(prob)
         for i in range(len(centers)):
-            
             if len(clusterFalse[i]) < 10:
-                swap(clusterFalse, clustefrTrue)
+                swap(clusterFalse, clusterTrue)
             for ch in clusterFalse[i]:
                 choice = np.random.choice([True,False],p=[prob,1-prob])
                 if choice:
@@ -174,15 +175,21 @@ class ClusterMemberStats:
         
         return total
 
-    # def getPathLoss(self, cluster_heads:list, location:int = 0) -> list:
+    # def getPathLoss(self, cluster_heads:list, main_position: np.array, specific_nodes: list, location:int = 0) -> list:
     #     total1 = [[] for head in cluster_heads]
     #     total2 = [[] for head in cluster_heads]
     #     ch_pos = [x.current_position for x in cluster_heads]
 
-    #     for cluster in self.cluster_member:
+    #     specific = False if len(specific_nodes)  == 0 else True
+
+    #     for ind, cluster in enumerate(self.cluster_member):
     #         if cluster.base_station == -1:
     #             continue
             
+    #         if specific:
+    #             if ind not in specific_nodes:
+    #                 continue
+
     #         current_head = cluster_heads[cluster.base_station]
 
     #         def los_nlosPathLoss(current_head_position, cluster_member_position, location):
@@ -207,7 +214,6 @@ class ClusterMemberStats:
     #             prob_nlos = 1 - prob_los
 
     #             loss = 20*np.log10(4*np.pi*fc*distance/c) + eta_los*prob_los + eta_nlos*prob_nlos
-    #             # loss = 20*np.log10(4*np.pi*fc*distance/c) + eta_los   
                 
     #             g_db = 3 #dB
     #             p_min = dbmToDb(20)
@@ -246,14 +252,21 @@ class ClusterMemberStats:
         
     #     return total1
 
-    def getPathLoss(self, cluster_heads:list, main_position:np.array, location:int = 0)-> list:
+    def getPathLoss(self, cluster_heads: list, main_position: np.array, specific_nodes: list, location: int = 0)-> list:
         total1 = [[] for head in cluster_heads]
         total2 = [[] for head in cluster_heads]
 
-        for cluster in self.cluster_member:
+        specific = False if len(specific_nodes)  == 0 else True
+
+        for ind, cluster in enumerate(self.cluster_member):
             if cluster.base_station == -1:
                 continue
-
+            
+            if specific:
+                if ind not in specific_nodes:
+                    continue
+            
+            # print(ind)
             current_head = cluster_heads[cluster.base_station]
             current_head_position = current_head.current_position
             cluster_member_position = cluster.position
@@ -288,7 +301,8 @@ class ClusterMemberStats:
             else:
                 gain -= 12 + 10*np.log10(theta/theta3)
             antenna_loss = -2*(gain)
-            difrac_loss = -20*np.log10(0.225/excess_pl) if excess_pl>0 else 0
+            # difrac_loss = -20*np.log10(0.225/excess_pl) if excess_pl>0 else 0
+            difrac_loss = 0
             mean_pl = free_space_pl + antenna_loss + difrac_loss + 20*np.log10(1-prob_los)
             
             total1[cluster.base_station].append(mean_pl)
@@ -323,8 +337,34 @@ class ClusterMemberStats:
 
         return total1
 
-    def getConnectivity(self, cluster_heads:list, main_position:np.array) -> list:
-        self.getPathLoss(cluster_heads, main_position)
-        return self.connected_total
+    def getConnectivity(self, cluster_heads: list, main_position: np.array, specific_nodes: list) -> list:
+        total = [[] for head in cluster_heads]
+        for cluster in self.cluster_member:
+            if cluster.base_station == -1:
+                continue
+            
+            current_head = cluster_heads[cluster.base_station]
+            current_head_position = current_head.current_position
+            current_head_range = current_head.current_range
+            cluster_member_position = cluster.position
+
+            distance = np.linalg.norm(current_head_position-cluster_member_position)
+            if current_head_range >= distance:
+                total[cluster.base_station].append(1)
+            elif current_head_range*1.5 >= distance:
+                total[cluster.base_station].append(0.5)
+            else:
+                total[cluster.base_station].append(0)
+        
+        for ind,item in enumerate(total):
+            if len(item) > 0:
+                total[ind] = sum(item)/len(item)*100
+            else:
+                total[ind] = 0
+        
+        return total
+
+        # self.getPathLoss(cluster_heads, main_position, specific_nodes)
+        # return self.connected_total
 
 

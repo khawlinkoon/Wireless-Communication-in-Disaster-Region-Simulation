@@ -6,7 +6,7 @@ time_per_frame: 30 # ms
 
 terrain: 0    # 0 for urban, 1 for suburban
 reload_map_height: False
-start_cycle: 1
+start_cycle: 0
 
 algorithm: "kmeans"
 # Example algorithms:
@@ -28,7 +28,7 @@ pathloss: "los/nlos"
 
 dynamic: True
 evacuating: True
-save: False
+save: True
 
 # Data Generation
 random_nodes: [
@@ -84,20 +84,20 @@ communication_energy: 76.8
 
 # Base station settings
 bs_total: 3
-bs_range: 400
+bs_range: 600
 bs_height: 80
 
 bs_location: [
   [500,500],
+  [1500,2300],
   [2500,1200],
-  [1500,2300]
 ]
 
 # UAV settings
-uav_total: 3    # Change to 1 for just LEACH
+uav_total: 1    # Change to 1 for just LEACH
 uav_speed: 10
 uav_range: 500
-uav_height: 150
+uav_height: 150 
 use_all_uav: True
 uav_idle_energy: 76.8 # Communication
 uav_move_energy: 1335.456 

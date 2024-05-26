@@ -2,7 +2,8 @@ from src.utils import Mobility, Distribution
 import yaml
 import numpy as np
 
-print(np.random.choice([True,False],p=[0.3,0.7]))
+for i in range(10):
+    print(np.random.choice([1,2,3],p=[0.7,0.2,0.1]))
 # for i in range(10):
 #     print(sum(np.random.uniform(3000,15000,1))/100)
 

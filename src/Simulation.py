@@ -33,13 +33,13 @@ class Simulation:
     def initialize(self) -> None:
         self.getConfig()
         self.getMapHeight()
-        center = [self.config["length"]/2, self.config["width"]/2, 0]
+        self.center = [self.config["length"]/2, self.config["width"]/2, 0]
         self.uav_height = self.config["uav_height"]
         self.disaster_zones = [] if "disaster_zones" not in self.config.keys() else self.config["disaster_zones"]
-        self.evacuate_point = center if "evacuate_point" not in self.config.keys() else self.config["evacuate_point"]
+        self.evacuate_point = self.center if "evacuate_point" not in self.config.keys() else self.config["evacuate_point"]
         self.evacuate_point = np.append(self.evacuate_point, self.map_height[self.evacuate_point[0]][self.evacuate_point[1]])
         self.evacuate_radius = self.config["evacuate_radius"]
-        self.base_station_point = center if self.config["bs_total"] <=0 else self.config["bs_location"]
+        self.base_station_point = self.center if self.config["bs_total"] <=0 else self.config["bs_location"]
         self.base_station_point = [np.append(self.base_station_point[i], self.map_height[self.base_station_point[i][0]][self.base_station_point[i][1]]) for i in range(len(self.base_station_point))]
         self.base_station_point.append(self.evacuate_point)
         self.main_base_station = self.base_station_point[-1]
@@ -96,6 +96,7 @@ class Simulation:
         self.total_runtime = "0 ms"
         self.total_memory = "0"
         self.pathloss = []
+        self.new_node_head_id = []
     
     def getClusteringAlgo(self):
         def setClusterHeadWithCenters(cluster_center: np.array) -> list:
@@ -103,8 +104,7 @@ class Simulation:
             self.new_cluster_center = [[obj,ind] for ind,obj in enumerate(cluster_center)]
 
             # if len(old_cluster_center) == 0:
-            self.new_cluster_center = sorted(self.new_cluster_center,key=lambda x: [x[0][0],x[0][1],x[0][2]])
-
+            self.new_cluster_center = sorted(self.new_cluster_center,key=lambda x: [x[0][0], x[0][0]+x[0][1], (self.center[0]-x[0][0])**2+(self.center[1]-x[0][1])**2+(self.center[2]-x[0][2])**2])
 
             new_order = [obj[1] for obj in self.new_cluster_center]
             self.new_cluster_center = [obj[0] for obj in self.new_cluster_center]
@@ -115,7 +115,7 @@ class Simulation:
             self.cluster_head_stats.updateEndPosition(len(self.new_cluster_center), self.new_cluster_center, self.uav_height)
             return new_order
             
-        def setClusterHeadWithoutCenters(total_cluster: int) -> list:
+        def setClusterHeadWithoutCenters(total_cluster: int = 0) -> list:
             temp_center_x = [[] for ind in range(len(np.unique(self.labels)))]
             temp_center_y = [[] for ind in range(len(np.unique(self.labels)))]
             temp_center_z = [[] for ind in range(len(np.unique(self.labels)))]
@@ -138,13 +138,13 @@ class Simulation:
 
             self.new_cluster_center = np.array([self.center_x,self.center_y,self.center_z]).T
             self.new_cluster_center = [[obj,ind] for ind,obj in enumerate(self.new_cluster_center)]
-            self.new_cluster_center = sorted(self.new_cluster_center,key=lambda x: [x[0][0],x[0][1],x[0][2]])
+            self.new_cluster_center = sorted(self.new_cluster_center,key=lambda x: [x[0][0]+x[0][1], x[0][0], (self.center[0]-x[0][0])**2+(self.center[1]-x[0][1])**2+(self.center[2]-x[0][2])**2])
             new_order = [obj[1] for obj in self.new_cluster_center]
             self.new_cluster_center = [obj[0] for obj in self.new_cluster_center]
             self.new_max_distance = self.cluster_member_stats.maxDistance(self.new_cluster_center)
 
-            if self.current_cycle >= self.start_cycle:
-                self.cluster_head_stats.updateOrder(new_order)
+            # if self.current_cycle >= self.start_cycle:
+            #     self.cluster_head_stats.updateOrder(new_order)
             self.cluster_head_stats.updateEndPosition(len(self.new_cluster_center), self.new_cluster_center, self.uav_height)
             return new_order
 
@@ -165,26 +165,48 @@ class Simulation:
                 for ind in range(len(new_order)):
                     if new_order[ind] == obj:
                         self.labels.append(ind)
+                        break
             self.cluster_member_stats.setBaseStation(self.labels)
         elif current_algorithm == "mini_kmeans":
             algo = MiniKmeans()
             algo.setData(self.cluster_member_stats)
-            self.clustering = algo.generateModel(n_clusters = total_cluster)
+            self.clustering = algo.generateModel(optimal = False if self.current_cycle < self.start_cycle else not self.config["use_all_uav"], n_clusters = total_cluster)
             new_order = setClusterHeadWithCenters(cluster_center=self.clustering.cluster_centers_)
-            self.labels = [new_order[obj] for obj in algo.getLabels()]
+            self.labels = []
+            for obj in algo.getLabels():
+                for ind in range(len(new_order)):
+                    if new_order[ind] == obj:
+                        self.labels.append(ind)
+                        break
             self.cluster_member_stats.setBaseStation(self.labels)
         elif current_algorithm == "density_based":
             algo = DensityBased()
             algo.setData(self.cluster_member_stats)
             self.clustering = algo.generateModel()
+            self.labels = algo.getLabels()
             new_order = setClusterHeadWithoutCenters()
-            self.labels = [new_order[obj] for obj in algo.getLabels()]
+            self.labels = []
+            for obj in algo.getLabels():
+                if obj == -1:
+                    self.labels.append(0)
+                    continue
+                for ind in range(len(new_order)):
+                    if new_order[ind] == obj:
+                        self.labels.append(ind)
+                        break
             self.cluster_member_stats.setBaseStation(self.labels)
         elif current_algorithm == "affinity_propagation":
             algo = AffinityProp()
             algo.setData(self.cluster_member_stats)
             self.clustering = algo.generateModel()
             self.labels = algo.getLabels()
+            new_order = setClusterHeadWithoutCenters()
+            self.labels = []
+            for obj in algo.getLabels():
+                for ind in range(len(new_order)):
+                    if new_order[ind] == obj:
+                        self.labels.append(ind)
+                        break
             self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithoutCenters()
         elif current_algorithm == "birch":
@@ -192,6 +214,13 @@ class Simulation:
             algo.setData(self.cluster_member_stats)
             self.clustering = algo.generateModel()
             self.labels = algo.getLabels()
+            new_order = setClusterHeadWithoutCenters()
+            self.labels = []
+            for obj in algo.getLabels():
+                for ind in range(len(new_order)):
+                    if new_order[ind] == obj:
+                        self.labels.append(ind)
+                        break
             self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithoutCenters(total_cluster)
         elif current_algorithm == "spectral":
@@ -199,6 +228,13 @@ class Simulation:
             algo.setData(self.cluster_member_stats)
             self.clustering = algo.generateModel()
             self.labels = algo.getLabels()
+            new_order = setClusterHeadWithoutCenters()
+            self.labels = []
+            for obj in algo.getLabels():
+                for ind in range(len(new_order)):
+                    if new_order[ind] == obj:
+                        self.labels.append(ind)
+                        break
             self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithoutCenters()
         elif current_algorithm == "gaussian":
@@ -206,6 +242,13 @@ class Simulation:
             algo.setData(self.cluster_member_stats)
             self.clustering = algo.generateModel()
             self.labels = algo.getLabels()
+            new_order = setClusterHeadWithoutCenters()
+            self.labels = []
+            for obj in algo.getLabels():
+                for ind in range(len(new_order)):
+                    if new_order[ind] == obj:
+                        self.labels.append(ind)
+                        break
             self.cluster_member_stats.setBaseStation(self.labels)
             setClusterHeadWithoutCenters()
         elif current_algorithm == "lda":
@@ -214,22 +257,34 @@ class Simulation:
             algo.setData(self.cluster_member_stats)
             self.clustering = algo.generateModel()
             self.labels = algo.getLabels()
+            new_order = setClusterHeadWithoutCenters()
+            self.labels = []
+            for obj in algo.getLabels():
+                for ind in range(len(new_order)):
+                    if new_order[ind] == obj:
+                        self.labels.append(ind)
+                        break
             self.cluster_member_stats.setBaseStation(self.labels)
-            setClusterHeadWithoutCenters()
         elif current_algorithm == "markov":
             algo = Markov()
             algo.setData(self.cluster_member_stats)
             self.clustering = algo.generateModel()
             self.labels = algo.getLabels()
+            new_order = setClusterHeadWithoutCenters()
+            self.labels = []
+            for obj in algo.getLabels():
+                for ind in range(len(new_order)):
+                    if new_order[ind] == obj:
+                        self.labels.append(ind)
+                        break
             self.cluster_member_stats.setBaseStation(self.labels)
-            setClusterHeadWithoutCenters()
         else:
             return NotImplementedError
         
-        if self.new_algo:
+        if self.new_algo and self.current_cycle >= self.start_cycle:
             # self.new_node_head_id = self.cluster_member_stats.getClusterHead(self.new_cluster_center)
-            self.new_node_head_id = self.cluster_member_stats.getLeachCh(self.new_cluster_center, self.leach_probability)
-            print(self.new_node_head_id)
+            self.new_node_head_id = self.cluster_member_stats.getLeachCh(self.new_cluster_center, self.leach_probability, self.current_cycle)
+            # print(self.new_node_head_id)
         
         self.total_memory = str((psutil.Process(os.getpid()).memory_info().rss - start_mem)/1024) + " kB"
         self.total_runtime = f"{(time.time()-start_time)*1000:.2f} ms"
@@ -276,26 +331,25 @@ class Simulation:
             if self.current_cycle == self.start_cycle:
                 self.cluster_head_stats = self.uav_stats
             self.getClusteringAlgo()
+            if self.config["save"]:
+                self.saveGraph()
+                print("Saved")
+            self.drawMap(update=True)
             self.drawGraph1()
             self.drawGraph2()
             self.drawGraph3()
             self.drawGraph4()
-            self.drawMap(update=True)
             
-            if self.config["save"]:
-                self.fig.savefig("Results\\map.png",dpi=300)
-                self.saveGraph()
-                print("Saved")
         elif current_time % 5 == 0:
             self.drawGraph1()
             self.drawGraph2()
             self.drawGraph3()
             self.drawGraph4()
-        else:
-            pass
+            if current_time == 50 and self.config["save"]:
+                self.drawMap(update=True, save=True)
         if self.config["dynamic"]:
             self.cluster_member_stats.updatePosition(self.evacuate_point, self.evacuating, self.communication_energy/3)
-            self.cluster_head_stats.updatePosition()
+        self.cluster_head_stats.updatePosition()
         self.drawMap(update=True)
 
     def draw(self) -> None:
@@ -305,7 +359,7 @@ class Simulation:
         self.drawGraph3()
         self.drawGraph4()
 
-    def drawMap(self, update: bool = False) -> None:
+    def drawMap(self, update: bool = False, save: bool = False) -> None:
         self.ax[0].cla()
         pos = np.array(self.cluster_member_stats.getPosition())
         x,y,z = pos.T
@@ -418,6 +472,9 @@ class Simulation:
         self.ax[0].set_ylim([0,self.config["width"]])
         self.ax[0].set_title("Map")
         # self.ax[0].set_aspect("equal", anchor="C")
+
+        if save:
+            self.fig.savefig("Results\\map.png",dpi=300)
     
     def drawGraph1(self, refresh = False) -> None:
         if refresh:
@@ -425,7 +482,7 @@ class Simulation:
         else:
             self.ax[1].cla()
         
-        data = self.cluster_member_stats.getConnectivity(self.cluster_head_stats.cluster_head_value, self.main_base_station)
+        data = self.cluster_member_stats.getConnectivity(self.cluster_head_stats.cluster_head_value, self.main_base_station, self.new_node_head_id)
         if len(self.graph1_y) > 0 and len(data) != len(self.graph1_y[0]):
             self.graph1_y = []
         if data != []:
@@ -436,7 +493,7 @@ class Simulation:
 
         self.ax[1].plot(self.graph1_x,self.graph1_y)
         self.ax[1].set_xlim([0,self.config["cycle_frames"]/5])
-        self.ax[1].set_ylim([0,100])
+        self.ax[1].set_ylim([20,100])
         self.ax[1].set_xlabel("Time (frame)")
         self.ax[1].set_ylabel("Coverage (%)")
         self.ax[1].set_title("Coverage probabilty")
@@ -450,7 +507,7 @@ class Simulation:
             self.ax[2].cla()
 
         # data = self.cluster_member_stats.getProbability(self.cluster_head)
-        self.pathloss = self.cluster_member_stats.getPathLoss(self.cluster_head_stats.cluster_head_value, self.main_base_station, self.config["terrain"])
+        self.pathloss = self.cluster_member_stats.getPathLoss(self.cluster_head_stats.cluster_head_value, self.main_base_station, self.new_node_head_id, self.config["terrain"])
         if len(self.graph2_y) > 0 and len(self.pathloss) != len(self.graph2_y[0]):
             self.graph2_y = []
         if self.pathloss != []:
@@ -461,7 +518,7 @@ class Simulation:
         
         self.ax[2].plot(self.graph2_x,self.graph2_y)
         self.ax[2].set_xlim([0,self.config["cycle_frames"]/5])
-        self.ax[2].set_ylim([70,150])
+        self.ax[2].set_ylim([60,110])
         self.ax[2].set_xlabel("Time (frame)")
         self.ax[2].set_ylabel("Path Loss (dB)")
         self.ax[2].set_title("Path Loss")
@@ -545,7 +602,7 @@ class Simulation:
 
         ax[1].plot(self.graph2_x,self.graph2_y)
         ax[1].set_xlim([0,self.config["cycle_frames"]/5])
-        ax[1].set_ylim([80,140])
+        ax[1].set_ylim([70,110])
         ax[1].set_title("Path Loss")
         ax[1].legend(self.cluster_head_stats.id_num)
         fig.savefig("Results\\results.png",dpi=300)
@@ -592,7 +649,7 @@ def initializeClusterMembers(
         position[2] = height[position[0]][position[1]]
         cluster_member = ClusterMember(
             position = position,
-            mobility = Mobility("stationary"),
+            mobility = np.random.choice([Mobility("stationary"),Mobility("walking"),Mobility("car")],p=[0.7,0.2,0.1]),
             energy = distribution.getDistribution(
                 energy[0]["distribution"],
                 energy[0]["param"]),
