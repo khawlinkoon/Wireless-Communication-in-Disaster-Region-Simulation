@@ -1,13 +1,20 @@
-# Map settings
+## General settings
 length: &length 3000
 width: &width 3000
 cycle_frames: 50
 time_per_frame: 30 # ms
 
-terrain: 0    # 0 for urban, 1 for suburban
+terrain: 0        # 0 for urban, 1 for suburban
 reload_map_height: False
-start_cycle: 0
+start_cycle: 1    # 0 for direct start
 
+dynamic: True     # Set dynamic environment
+evacuating: True  # Set nodes moving towards evaucation area
+save: False        # Save graph as png
+evacuate_point: [1500,1500]
+evacuate_radius: 500
+
+## Algorithm settings
 algorithm: "kmeans"
 # Example algorithms:
   # kmeans
@@ -21,16 +28,16 @@ algorithm: "kmeans"
   # lda (Not done)
   # markov
 
+# LEACH settings
+new_algo: True
+leach_probability: 0.05
+
 pathloss: "los/nlos"
 # Exampe path loss model
   # free space
   # los/nlos
 
-dynamic: True
-evacuating: True
-save: True
-
-# Data Generation
+## Node Data Generation
 random_nodes: [
   {
     distribution: "randint",
@@ -94,24 +101,10 @@ bs_location: [
 ]
 
 # UAV settings
-uav_total: 1    # Change to 1 for just LEACH
+uav_total: 3    # Change to 1 for just LEACH
 uav_speed: 10
 uav_range: 500
 uav_height: 150 
 use_all_uav: True
 uav_idle_energy: 76.8 # Communication
 uav_move_energy: 1335.456 
-
-evacuate_point: [1500,1500]
-evacuate_radius: 500
-
-# LEACH settings
-new_algo: True
-leach_probability: 0.05
-
-
-# x, y, wdith, height
-# disaster_zones: [
-#   [[2000,2000],500,1000],
-#   [[5000,3000],500,500]
-# ]
