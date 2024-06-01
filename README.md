@@ -12,8 +12,8 @@
  7. LEACH protocol
 
 ## Additional settings
- Change mobility speed settings in mobility.yml .
- Change pathloss values in pathloss.yml
+ - Change mobility speed settings in mobility.yml
+ - Change pathloss values in pathloss.yml
 
 ## How to run simulation
 1. Download all required libraries.
